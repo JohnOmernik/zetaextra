@@ -1,0 +1,4 @@
+#!/bin/bash
+
+DEF_APP_VERS="minecraft-1.11.2.vers"
+REC_DIR="apps"

@@ -1,0 +1,24 @@
+#!/bin/bash
+
+APP_VER="1.11.2"
+
+APP_URL_ROOT="https://s3.amazonaws.com/Minecraft.Download/versions/1.11.2/"
+APP_URL_FILE="minecraft_server.1.11.2.jar"
+
+APP_JAR="$APP_URL_FILE"
+APP_URL="${APP_URL_ROOT}${APP_URL_FILE}"
+
+REQ_APP_IMG_NAME="zetabase"
+
+APP_IMG_NAME="zetabase"
+APP_IMG_TAG="latest"
+
+APP_IMG="${ZETA_DOCKER_REG_URL}/${APP_IMG_NAME}:${APP_IMG_TAG}"
+
+if [ "$BUILD" == "Y" ]; then
+
+    wget $APP_URL
+    mv $APP_JAR $APP_PKG_DIR/
+
+fi
+
