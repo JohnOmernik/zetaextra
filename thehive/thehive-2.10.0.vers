@@ -1,0 +1,33 @@
+#!/bin/bash
+
+APP_VER="2.10.0"
+
+
+APP_URL_BASE="https://dl.bintray.com/cert-bdf/thehive/"
+APP_URL_FILE="thehive-latest.zip"
+
+APP_IMG_NAME="thehive"
+APP_IMG_TAG="$APP_VER"
+
+APP_IMG="${ZETA_DOCKER_REG_URL}/${APP_IMG_NAME}:${APP_IMG_TAG}"
+REQ_APP_IMG_NAME="buildbase"
+
+if [ "$BUILD" == "Y" ]; then
+
+
+cat > ./Dockerfile << EOF
+
+FROM ${ZETA_DOCKER_REG_URL}/$REQ_APP_IMG_NAME
+
+RUN mkdir -p /opt/thehive
+
+WORKDIR /opt/thehive
+
+RUN wget ${APP_URL_BASE}${APP_URL_FILE} && unzip ${APP_URL_FILE} && export APP_DIR=\$(ls -1|grep -v "\.zip") && ln -s \$APP_DIR thehive && rm ${APP_URL_FILE} && chown -R $IUSER:$IUSER /opt/thehive
+
+WORKDIR /opt/thehive
+
+CMD ["/bin/bash"]
+EOF
+
+fi

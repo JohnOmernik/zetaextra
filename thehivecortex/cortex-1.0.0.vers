@@ -1,0 +1,32 @@
+#!/bin/bash
+
+APP_VER="1.0.0"
+
+APP_URL_BASE="https://dl.bintray.com/cert-bdf/cortex/"
+APP_URL_FILE="cortex-latest.zip"
+
+APP_IMG_NAME="cortex"
+APP_IMG_TAG="$APP_VER"
+
+APP_IMG="${ZETA_DOCKER_REG_URL}/${APP_IMG_NAME}:${APP_IMG_TAG}"
+REQ_APP_IMG_NAME="buildbase"
+
+if [ "$BUILD" == "Y" ]; then
+
+
+cat > ./Dockerfile << EOF
+
+FROM ${ZETA_DOCKER_REG_URL}/$REQ_APP_IMG_NAME
+
+RUN mkdir -p /opt/cortex
+
+WORKDIR /opt/cortex
+
+RUN apt-get update && apt-get install -y python-pip python2.7-dev ssdeep libfuzzy-dev libfuzzy2 libimage-exiftool-perl libmagic1 build-essential && wget ${APP_URL_BASE}${APP_URL_FILE} && unzip ${APP_URL_FILE} && export APP_DIR=\$(ls -1|grep -v "\.zip") && ln -s \$APP_DIR cortex && rm ${APP_URL_FILE} && chown -R $IUSER:$IUSER /opt/cortex && cd /opt/cortex/cortex/analyzers && pip install \$(cat */requirements.txt | sort -u)
+
+WORKDIR /opt/cortex
+
+CMD ["/bin/bash"]
+EOF
+
+fi

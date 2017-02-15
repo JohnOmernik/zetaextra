@@ -1,0 +1,4 @@
+#!/bin/bash
+
+DEF_APP_VERS="thehive-2.10.0.vers"
+REC_DIR="apps"
