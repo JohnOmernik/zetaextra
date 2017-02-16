@@ -6,12 +6,27 @@ echo "The next step will walk through instance defaults for ${APP_ID}"
 echo ""
 read -e -p "Please enter the CPU shares to use with $APP_NAME: " -i "1.0" APP_CPU
 echo ""
-read -e -p "Please enter the Marathon Memory limit to use with mongo: " -i "1024" APP_MEM
+read -e -p "Please enter the Marathon Memory limit to use with cortex: " -i "2048" APP_MEM
 echo ""
 read -e -p "How many instances of $APP_NAME do you wish to run: " -i "1" APP_CNT
 echo ""
 read -e -p "What user should we run thehive as: " -i "zetasvc${APP_ROLE}" APP_USER
 echo ""
+
+echo "The hive can use ldap auth, it's just not working quite yet. Defaulting to local auth"
+echo ""
+#echo "The hive can use ldap authentication, do you wish to use cluster ldap auth?"
+#read -e -p "Use Cluster LDAP Auth? (Y/N): " -i "Y" APP_LDAP
+#if [ "$APP_LDAP" == "Y" ]; then
+#    APP_AUTH_TYPE="type = [local,ldap]"
+#    read -e -p "Please enter the group to create under OU zeta${APP_ROLE}/groups for hive users on this instance: " -i "hive_${APP_ID}_users" APP_GROUP
+#    @go.log INFO "Adding Group $APP_GROUP"
+#    ./zeta users group -a -r="${APP_ROLE}" -g="$APP_GROUP" -D="Access to thehive instance $APP_ID in role $APP_ROLE" -u
+#else
+#    APP_AUTH_TYPE="type = [local]"
+#fi
+APP_AUTH_TYPE="type = [local]"
+
 echo "Thehive Cortex allows for lookups on multiple api services.  You should have a cortex server. If you don't yet, you can install one here"
 echo ""
 read -e -p "Do you wish to install a new Cortex instance for thehive? (Y/N): " -i "Y" APP_CORTEX_INSTALL
@@ -26,19 +41,19 @@ else
     echo "Not installing a new cortex, please provide a URL to the existing instance"
 fi
 
-read -e -p "What is the URL for the Cortex instance to use with the hive? " -i "http://cortexprod-prod.marathon.slave.mesos:30900" APP_CORTEX
+read -e -p "What is the URL for the Cortex instance to use with the hive? " APP_CORTEX
 echo "The Hive needs an elastic search instance. You can install one here, or use an existing instance"
 read -e -p "Do you wish to install a new instance of Elastic Search for thehive? (Y/N): " -i "Y" APP_ES_INSTALL
 
 if [ "$APP_ES_INSTALL" == "Y" ]; then
     @go.log INFO "Running Elastic Search Install"
     ./zeta package install elasticsearch
-    read -e -p "Enter the path to your newly installed ES Instance conf file: " -i "$CLUSTERMOUNT/zeta" APP_ES_CONF
+    read -e -p "Enter the path to your newly installed ES Instance conf file: " APP_ES_CONF
     if [ ! -f "$APP_ES_CONF" ]; then
         @go.log FATAL "ES Conf does not exist"
     fi
 else
-    read -e -p "Enter the path to your ES instance conf file: " -i "$CLUSTERMOUNT/zeta/prod/elasticsearch/esprod/esprod.conf" APP_ES_CONF
+    read -e -p "Enter the path to your ES instance conf file: " APP_ES_CONF
     if [ ! -f "$APP_ES_CONF" ]; then
         @go.log FATAL "ES Conf does not exist - Exiting"
     fi
@@ -161,7 +176,7 @@ play.crypto.secret="$APP_SECRET"
 play.http.filters = global.TheHiveFilters
 http.port: disabled
 https.port: ${APP_PORT}
-play.server.https.keystore {
+play.server.https.keyStore {
     path: "/opt/thehive/certs/myKeyStore.jks"
     type: "JKS"
     password: "${KEYSTOREPASS}"
@@ -206,7 +221,7 @@ auth {
     # services.LocalAuthSrv : passwords are stored in user entity (in ElasticSearch). No configuration are required.
     # ad : use ActiveDirectory to authenticate users. Configuration is under "auth.ad" key
     # ldap : use LDAP to authenticate users. Configuration is under "auth.ldap" key
-    type = [local]
+    $APP_AUTH_TYPE
 
     ad {
         # Domain Windows name using DNS format. This parameter is required.
@@ -221,22 +236,23 @@ auth {
 
     ldap {
         # LDAP server name or address. Port can be specified (host:port). This parameter is required.
-        #serverName = "ldap.mydomain.local:389"
-
+        serverName = "openldap-shared.marathon.slave.mesos:389"
         # Use SSL to connect to directory server
         #useSSL = true
 
         # Account to use to bind on LDAP server. This parameter is required.
-        #bindDN = "cn=thehive,ou=services,dc=mydomain,dc=local"
+        bindDN = "cn=readonly,dc=marathon,dc=mesos"
 
         # Password of the binding account. This parameter is required.
-        #bindPW = "***secret*password***"
+        bindPW = "readonly"
 
         # Base DN to search users. This parameter is required.
-        #baseDN = "ou=users,dc=mydomain,dc=local"
+        baseDN = "dc=marathon,dc=mesos"
 
         # Filter to search user {0} is replaced by user name. This parameter is required.
         #filter = "(cn={0})"
+        #APPGROUP=${APP_GROUP}
+        filter = "(&(objectClass=posixAccount)(memberof=cn=${APP_GROUP},ou=groups,ou=zeta${APP_ROLE},dc=marathon,dc=mesos)(cn={0}))"
     }
 }
 

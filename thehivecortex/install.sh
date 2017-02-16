@@ -6,7 +6,7 @@ echo "The next step will walk through instance defaults for ${APP_ID}"
 echo ""
 read -e -p "Please enter the CPU shares to use with $APP_NAME: " -i "2.0" APP_CPU
 echo ""
-read -e -p "Please enter the Marathon Memory limit to use with mongo: " -i "4096" APP_MEM
+read -e -p "Please enter the Marathon Memory limit to use with cortex: " -i "4096" APP_MEM
 echo ""
 read -e -p "How many instances of $APP_NAME do you wish to run: " -i "1" APP_CNT
 echo ""
@@ -86,7 +86,7 @@ cat > $APP_CONF_DIR/application.conf << EOL2
 play.crypto.secret="$APP_SECRET"
 http.port=disabled
 https.port: ${APP_PORT}
-play.server.https.keystore {
+play.server.https.keyStore {
     path: "/opt/cortex/certs/myKeyStore.jks"
     type: "JKS"
     password: "${KEYSTOREPASS}"
