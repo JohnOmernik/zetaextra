@@ -65,10 +65,10 @@ sudo chmod 770 $APP_LOG_DIR
 STRPROX=""
 if [ "$ZETA_DOCKER_PROXY" != "" ]; then
     STRPROX="${STRPROX}global {"
-    STRPROX="${STRPROX}  proxy {"
-    STRPROX="${STRPROX}    http=${ZETA_DOCKER_PROXY},"
-    STRPROX="${STRPROX}    https=${ZETA_DOCKER_PROXY}"
-    STRPROX="${STRPROX}  }"
+    STRPROX="${STRPROX} proxy {"
+    STRPROX="${STRPROX} http: \"${ZETA_DOCKER_PROXY}\","
+    STRPROX="${STRPROX} http: \"${ZETA_DOCKER_PROXY}\""
+    STRPROX="${STRPROX} }"
     STRPROX="${STRPROX} }"
 fi
 
