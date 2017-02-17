@@ -36,6 +36,7 @@ fi
 
 bridgeports "APP_PORT_JSON" "$APP_PORT" "$APP_PORTSTR"
 haproxylabel "APP_HA_PROXY" "${APP_PORTSTR}"
+portslist "APP_PORT_LIST" "$APP_PORTSTR"
 
 APP_MAR_FILE="${APP_HOME}/marathon.json"
 APP_CONF_DIR="$APP_HOME/conf"
@@ -120,7 +121,7 @@ cat > $APP_MAR_FILE << EOL
    $APP_HA_PROXY
    "CONTAINERIZER":"Docker"
   },
-  "ports": [],
+  $APP_PORT_LIST
   "container": {
     "type": "DOCKER",
     "docker": {

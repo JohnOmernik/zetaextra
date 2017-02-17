@@ -15,17 +15,13 @@ echo ""
 
 echo "The hive can use ldap auth, it's just not working quite yet. Defaulting to local auth"
 echo ""
-#echo "The hive can use ldap authentication, do you wish to use cluster ldap auth?"
-#read -e -p "Use Cluster LDAP Auth? (Y/N): " -i "Y" APP_LDAP
-#if [ "$APP_LDAP" == "Y" ]; then
-#    APP_AUTH_TYPE="type = [local,ldap]"
-#    read -e -p "Please enter the group to create under OU zeta${APP_ROLE}/groups for hive users on this instance: " -i "hive_${APP_ID}_users" APP_GROUP
-#    @go.log INFO "Adding Group $APP_GROUP"
-#    ./zeta users group -a -r="${APP_ROLE}" -g="$APP_GROUP" -D="Access to thehive instance $APP_ID in role $APP_ROLE" -u
-#else
-#    APP_AUTH_TYPE="type = [local]"
-#fi
-APP_AUTH_TYPE="type = [local]"
+echo "The hive can use ldap authentication, do you wish to use cluster ldap auth?"
+read -e -p "Use Cluster LDAP Auth? (Y/N): " -i "Y" APP_LDAP
+if [ "$APP_LDAP" == "Y" ]; then
+    APP_AUTH_TYPE="type = [local,ldap]"
+else
+    APP_AUTH_TYPE="type = [local]"
+fi
 
 echo "Thehive Cortex allows for lookups on multiple api services.  You should have a cortex server. If you don't yet, you can install one here"
 echo ""
@@ -141,7 +137,8 @@ fi
 
 bridgeports "APP_PORT_JSON" "$APP_PORT" "$APP_PORTSTR"
 haproxylabel "APP_HA_PROXY" "${APP_PORTSTR}"
-
+portslist "APP_PORT_LIST" "${APP_PORTSTR}"
+ 
 APP_MAR_FILE="${APP_HOME}/marathon.json"
 APP_CERT_LOC="$APP_HOME/certs"
 APP_CONF_DIR="$APP_HOME/conf"
@@ -251,8 +248,7 @@ auth {
 
         # Filter to search user {0} is replaced by user name. This parameter is required.
         #filter = "(cn={0})"
-        #APPGROUP=${APP_GROUP}
-        filter = "(&(objectClass=posixAccount)(memberof=cn=${APP_GROUP},ou=groups,ou=zeta${APP_ROLE},dc=marathon,dc=mesos)(cn={0}))"
+        filter = "(&(objectClass=posixAccount)(cn={0}))"
     }
 }
 
@@ -385,7 +381,7 @@ cat > $APP_MAR_FILE << EOL
    $APP_HA_PROXY
    "CONTAINERIZER":"Docker"
   },
-  "ports": [],
+  $APP_PORT_LIST
   "container": {
     "type": "DOCKER",
     "docker": {
