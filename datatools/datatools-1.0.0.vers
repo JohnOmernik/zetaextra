@@ -1,0 +1,25 @@
+#!/bin/bash
+
+APP_VER="1.0.0"
+
+
+APP_IMG_NAME="datatools"
+APP_IMG_TAG="$APP_VER"
+
+APP_IMG="${ZETA_DOCKER_REG_URL}/${APP_IMG_NAME}:${APP_IMG_TAG}"
+REQ_APP_IMG_NAME="buildbase"
+
+if [ "$BUILD" == "Y" ]; then
+
+cat > ./Dockerfile << EOF
+
+FROM ${ZETA_DOCKER_REG_URL}/$REQ_APP_IMG_NAME
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y python-pip build-essential libsnappy-dev && pip install pyelasticsearch && pip install requests && pip install elasticsearch-loader[parquet]
+
+CMD ["/bin/bash"]
+EOF
+
+fi
