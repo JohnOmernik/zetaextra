@@ -1,0 +1,4 @@
+#!/bin/bash
+
+DEF_APP_VERS="unifi-5.4.11.vers"
+REC_DIR="apps"

@@ -1,0 +1,39 @@
+#!/bin/bash
+
+APP_VER="0.17.0"
+
+APP_IMG_NAME="superset"
+APP_IMG_TAG="$APP_VER"
+
+APP_IMG="${ZETA_DOCKER_REG_URL}/${APP_IMG_NAME}:${APP_IMG_TAG}"
+REQ_APP_IMG_NAME="buildbase"
+
+if [ "$BUILD" == "Y" ]; then
+
+
+cat > ./Dockerfile << EOF
+
+FROM ${ZETA_DOCKER_REG_URL}/$REQ_APP_IMG_NAME
+
+WORKDIR /opt/superset
+
+ENV SUPERSET_VERSION $APP_VER
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
+ENV PATH=\$PATH:/opt/superset/.bin
+ENV PYTHONPATH=/opt/superset/superset_config.py:\$PYTHONPATH
+
+RUN apt-get update && apt-get install -y libffi-dev libsasl2-dev libmysqlclient-dev postgresql-server-dev-all python3 python3-dev python3-setuptools python3-pip && apt-get clean && apt-get autoremove -y
+
+RUN pip3 install cython==0.25.2 numpy==1.12.0 && pip3 install pandas==0.18.1
+
+RUN pip3 install superset==$APP_VER mysqlclient==1.3.7 ldap3==2.1.1 psycopg2==2.6.1 redis==2.10.5 sqlalchemy-redshift==0.5.0
+
+#RUN git clone https://github.com/JohnOmernik/pydrill && cd pydrill && python3 setup.py install && cd .. && rm -rf ./pydrill && ls -ls
+
+RUN git clone https://github.com/JohnOmernik/sadrill && cd sadrill && python3 setup.py install --force && cd .. && rm -rf ./sadrill
+
+CMD ["/bin/bash"]
+EOF
+
+fi

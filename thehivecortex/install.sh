@@ -46,7 +46,7 @@ APP_CERT_LOC="$APP_HOME/certs"
 CN_GUESS="${APP_ID}-${APP_ROLE}.marathon.slave.mesos"
 
 
-
+APP_API_URL="https://${APP_ID}-${APP_ROLE}.marathon.slave.mesos:$APP_PORT"
 
 
 mkdir -p $APP_CERT_LOC

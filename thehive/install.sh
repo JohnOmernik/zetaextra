@@ -145,6 +145,9 @@ APP_CONF_DIR="$APP_HOME/conf"
 APP_LOG_DIR="$APP_HOME/logs"
 APP_ENV_FILE="$CLUSTERMOUNT/zeta/kstore/env/env_${APP_ROLE}/${APP_NAME}_${APP_ID}.sh"
 CN_GUESS="${APP_ID}-${APP_ROLE}.marathon.slave.mesos"
+
+APP_API_URL="https://${APP_ID}-${APP_ROLE}.marathon.slave.mesos:$APP_PORT"
+
 mkdir -p $APP_CONF_DIR
 mkdir -p $APP_LOG_DIR
 mkdir -p $APP_CERT_LOC
