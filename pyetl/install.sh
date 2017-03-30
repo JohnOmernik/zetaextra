@@ -6,136 +6,147 @@ echo "The next step will walk through instance defaults for ${APP_ID}"
 echo ""
 read -e -p "Please enter the CPU shares to use with $APP_NAME: " -i "1.0" APP_CPU
 echo ""
-read -e -p "Please enter the Marathon Memory limit to use with $APP_NAME: " -i "2048" APP_MEM
+read -e -p "Please enter the Marathon Memory limit to use with $APP_NAME: " -i "1024" APP_MEM
 echo ""
-read -e -p "How many instances of $APP_NAME do you wish to run: " -i "1" APP_CNT
+read -e -p "How many instances of $APP_NAME do you wish to run (this should match the partitions you will be working against): " -i "1" APP_CNT
 echo ""
 read -e -p "What user should we run $APP_NAME as: " -i "zetasvc${APP_ROLE}" APP_USER
 echo ""
 
-
-echo "We can generate a secret key, or you can enter one, this will be stored in superset_config.py"
+#############
+# install specific
+read -e -p "Please enter the Kafka APP_ID to use to load brokers: " APP_KAFKA_APP_ID
 echo ""
-read -e -p "Generate secret key? (Answering N will prompt for a secret key (Y/N): " -i "Y" APP_GEN_KEY
+read -e -p "Please confirm the Zookeeper String: " -i "$ZETA_ZKS" APP_ZKS
 echo ""
-if [ "$APP_GEN_KEY" != "Y" ]; then
-    read -e -p "Secret Key for Cortext (will be echoed to the screen): " APP_SECRET
-else
-    APP_SECRET=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 64 | head -n 1)
-fi
+read -e -p "Please enter the topic to subscribe to: " APP_KAFKA_TOPIC
+echo ""
+read -e -p "Please enter the table name to put the data in: " -i "mytable" APP_TABLE
+echo ""
+read -e -p "Please enter the location to mount to /app/data in the container (the table dir will be made in /app/data/$APP_TABLE): " -i "/zeta/$CLUSTERNAME/data/$APP_ROLE" APP_TABLE_BASE
+echo ""
+read -e -p "Please enter the field in your data you wish to use as a partition field: " -i "day" APP_PART
 
-PORTSTR="CLUSTER:tcp:30422:${APP_ROLE}:${APP_ID}:HTTPS Port for $APP_NAME"
-getport "CHKADD" "HTTPS Port for $APP_NAME" "$SERVICES_CONF" "$PORTSTR"
-
-if [ "$CHKADD" != "" ]; then
-    getpstr "MYTYPE" "MYPROTOCOL" "APP_PORT" "MYROLE" "MYAPP_ID" "MYCOMMENTS" "$CHKADD"
-    APP_PORTSTR="$CHKADD"
-else
-    @go.log FATAL "Failed to get Port for $APP_NAME instance $APP_ID with $PSTR"
-fi
-
-APP_API_URL="http://$APP_ID-$APP_ROLE.marathon.slave.mesos:$APP_PORT"
-
-bridgeports "APP_PORT_JSON" "$APP_PORT" "$APP_PORTSTR"
-haproxylabel "APP_HA_PROXY" "${APP_PORTSTR}"
-portslist "APP_PORT_LIST" "${APP_PORTSTR}"
 
 APP_MAR_FILE="${APP_HOME}/marathon.json"
-APP_DATA_DIR="$APP_HOME/data"
+APP_BIN_DIR="${APP_HOME}/bin"
+APP_DATA_DIR="$APP_TABLE_BASE"
+mkdir -p $APP_BIN_DIR
+sudo chown -R $APP_USER:$IUSER $APP_BIN_DIR
+
 APP_ENV_FILE="$CLUSTERMOUNT/zeta/kstore/env/env_${APP_ROLE}/${APP_NAME}_${APP_ID}.sh"
 
-mkdir -p $APP_DATA_DIR
-sudo chown -R $APP_USER:$IUSER $APP_DATA_DIR
-sudo chmod 770 $APP_DATA_DIR
+if [ -d "$APP_DATA_DIR/$APP_TABLE" ]; then
+    @go.log WARN "Data directory already exists, do you wish to go on with install?"
+    read -e -p "Go on with install (potentially clobbering data?)(Y/N): " -i "N" APP_GO
+    if [ "$APP_GO" != "Y" ]; then
+        @go.log FATAL "Wisely Exiting"
+    else
+        @go.log WARN "Going to use existing directory, please understand what you are doing"
+    fi
+fi
 
-cat > $APP_ENV_FILE << EOL1
+mkdir -p $APP_DATA_DIR/$APP_TABLE
+sudo chown -R $IUSER:zeta${APP_ROLE}data $APP_DATA_DIR/$APP_TABLE
+sudo chmod 770 $APP_DATA_DIR/${APP_TABLE}
+
+cat >> $APP_BIN_DIR/pyetl.sh << EOF
 #!/bin/bash
-export ZETA_${APP_NAME}_${APP_ID}_PORT="${APP_PORT}"
-EOL1
 
-cat > $APP_DATA_DIR/superset_config.py << EOL2
-#---------------------------------------------------------
-# Superset specific config
-#---------------------------------------------------------
-ROW_LIMIT = 5000
-SUPERSET_WORKERS = 4
+# You must provide Bootstrap servers (kafka nodes and their ports OR Zookeepers and the kafka ID of the chroot for your kafka instance
+export ZOOKEEPERS="$APP_ZKS"
+export KAFKA_ID="$APP_KAFKA_APP_ID"
+# OR
+# export BOOTSTRAP_BROKERS="node1:9000,node2:9000"
 
-SUPERSET_WEBSERVER_PORT = $APP_PORT
-#---------------------------------------------------------
+# This is the name of the consumer group your client will create/join. If you are running multiple instances this is great, name them the same and Kafka will partition the info 
+export GROUP_ID="pyetl_${APP_KAFKA_TOPIC}_group"
 
-#---------------------------------------------------------
-# Flask App Builder configuration
-#---------------------------------------------------------
-# Your App secret key
-SECRET_KEY = '$APP_SECRET'
+# When registering a consumer group, do you want to start at the first data in the queue (earliest) or the last (latest)
+export OFFSET_RESET="earliest"
 
-# The SQLAlchemy connection string to your database backend
-# This connection defines the path to the database that stores your
-# superset metadata (slices, connections, tables, dashboards, ...).
-# Note that the connection information to connect to the datasources
-# you want to explore are managed directly in the web UI
-SQLALCHEMY_DATABASE_URI = 'sqlite:////opt/superset/superset.db'
+# The Topic to connect to
+export TOPIC="$APP_KAFKA_TOPIC"
 
-# Flask-WTF flag for CSRF
-CSRF_ENABLED = True
+# The next three items has to do with the cacheing of records. As this come off the kafka queue, we store them in a list to keep from making smallish writes and dataframes
+# These are very small/conservative, you should be able to increase, but we need to do testing at volume
 
-# Set this API key to enable Mapbox visualizations
-MAPBOX_API_KEY = ''
+export ROWMAX=500 # Total max records cached. Regardless of size, once the number of records hits this number, the next record will cause a flush and write to parquet
+export SIZEMAX=256000  # Total size of records. This is a rough running size of records in bytes. Once the total hits this size, the next record will cause a flush and write to parquet
+export TIMEMAX=60  # seconds since last write to force a write # The number of seconds since the last flush. Once this has been met, the next record from KAfka will cause a flush and write. 
 
-EOL2
+# This is the max size of (records) of a row group in a single Parquet write. If a single write exceeds this, another row group will be created in the file
+export PARQ_OFFSETS=50000000
 
-cat > $APP_DATA_DIR/runsrv.sh << EOL3
-#!/bin/bash
-cd /opt/superset
-superset runserver
+# What compression the Parquet file will be written with
+export PARQ_COMPRESS="SNAPPY"
 
-EOL3
-chmod +x $APP_DATA_DIR/runsrv.sh
+# As cached records are flush and appeneded to the current file, the file grows. This is the maximum size in bytes that the file will get. When it's reached, pyetl will create a new file
+export FILEMAXSIZE=8000000
+# Each individual append creates a row group. So if you have small appends, you could have lots of row groups in a single file which is inefficient. If you set this to 1, then
+# pyetl will, when the max file size is reached, read the WHOLE file into a dataframe and write it back out.  If the number of records is below PARQ_OFFSETS then there will only be
+# one row group making subsequent reads faster. We've only tested this on smallish files, needs some modeling to test. 
+export MERGE_FILE=1
+
+# Since we can have multiple pyetl instances running (partitions/consumer groups etc) We need some sort of uniq value so when writing file names, we don't clobber multiple instance
+# files.  This is easy if you are running in Docker, using Bridged networking. We just use the HOSTNAME env variable.  If you are not running in  Docker, or you are running in host network mode
+# where you could have multiple instances have the same HOSTNAME. Please set another ENV variable that is uniq. For example, you could set and ENV variable named MYSTRING to be
+# export MYSTRING=\$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)
+# and you would run pyetl with export UNIQ_ENV="MYSTRING" instead. This ensures a lack of clobbering of files. 
+export UNIQ_ENV="HOSTNAME"
+
+# This is where you want to write the parquet files.  /app/data should be volume mounted outside your container, and then next level should be your table name
+export TABLE_BASE="/app/data/${APP_TABLE}"
+
+# This is the field in your json data that will be used to directory partition the fields. So if you provide a path  of /app/data/mytable, then the values of this field will be the directory
+# names and all records with the that field having a X value will be written to X directory
+export PARTITION_FIELD="$APP_PART"
+
+# This is where tmp files our written during a merge.  Having the Preceding . keeps tools like Apache drill from querying it
+export TMP_PART_DIR=".tmp"
+
+# Turn on verbose logging.  For Silence export DEBUG=0
+export DEBUG=0
+
+# Instead of discarding a record that fails to be made into JSON, this tries to remove teh request body (often containing binary data and the cause of the issue) and keep the require but drop the body data 
+export DROP_REQ_BODY_ON_ERROR=1
+
+# Run Py ETL!
+python3 -u /app/code/pyparq.py
+
+EOF
+chmod +x $APP_BIN_DIR/pyetl.sh
+echo ""
+@go.log INFO "Application config written in $APP_BIN_DIR/pyetl.sh - you can edit conf settings for performance there"
+echo ""
+
+
+
 
 cat > $APP_MAR_FILE << EOL
 {
   "id": "${APP_MAR_ID}",
-  "cmd": "mkdir -p /home/${APP_USER} && chown -R ${APP_USER}:${IUSER} /home/${APP_USER} && chown -R ${APP_USER}:${IUSER} /opt/superset && su -c /opt/superset/runsrv.sh ${APP_USER}",
+  "cmd": " su -c /app/bin/pyetl.sh ${APP_USER}",
   "cpus": ${APP_CPU},
   "mem": ${APP_MEM},
   "instances": ${APP_CNT},
   "labels": {
-   $APP_HA_PROXY
    "CONTAINERIZER":"Docker"
   },
-  $APP_PORT_LIST
   "container": {
     "type": "DOCKER",
     "docker": {
       "image": "${APP_IMG}",
-      "network": "BRIDGE",
-      "portMappings": [
-        $APP_PORT_JSON
-      ]
+      "network": "BRIDGE"
     },
     "volumes": [
-      { "containerPath": "/opt/superset", "hostPath": "${APP_DATA_DIR}", "mode": "RW" }
+      { "containerPath": "/app/bin", "hostPath": "${APP_BIN_DIR}", "mode": "RW" },
+      { "containerPath": "/app/data", "hostPath": "${APP_DATA_DIR}", "mode": "RW" }
     ]
 
   }
 }
 EOL
-
-@go.log INFO "Superset conf files are all installed and configed, but Superset requires some interactive work to be complete, we will run this now"
-echo ""
-@go.log INFO "The first step is to create an admin user, this will ask for admin usernames, passwords etc"
-sudo docker run -it --rm -v=${APP_DATA_DIR}:/opt/superset:rw $APP_IMG fabmanager create-admin --app superset
-echo ""
-@go.log INFO "Next we run the DB Upgrade"
-sleep 2
-sudo docker run -it --rm -v=${APP_DATA_DIR}:/opt/superset:rw $APP_IMG superset db upgrade
-echo ""
-@go.log INFO "Next we init all DBs"
-sleep 2
-sudo docker run -it --rm -v=${APP_DATA_DIR}:/opt/superset:rw $APP_IMG superset init
-echo ""
-@go.log INFO "Superset is now ready to be run, and be started with ./zeta command below!"
-
 
 
 ##########
