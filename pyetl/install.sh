@@ -102,6 +102,13 @@ export TABLE_BASE="/app/data/${APP_TABLE}"
 # names and all records with the that field having a X value will be written to X directory
 export PARTITION_FIELD="$APP_PART"
 
+# This is the loop timeout, so that when this time is reached, it will cause the loop to occur (checking for older files etc)
+export LOOP_TIMEOUT="5.0"
+
+# If a partition was appended created or appended too, and there just any more data. pyetl keeps track of the last write. Of course if a file gets over FILEMAXSIZE it will merge but sometimes a partition will just be written without
+# merging. So let's say you had a file with 255mb of data and you set your FILEMAXSIZE to 256mb.  Well if you have written to the partition but have not seen any writes for 600 seconds, then merge it so you do not have lots of row groups
+export PARTMAXAGE=10
+
 # This is where tmp files our written during a merge.  Having the Preceding . keeps tools like Apache drill from querying it
 export TMP_PART_DIR=".tmp"
 

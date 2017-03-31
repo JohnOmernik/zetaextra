@@ -15,7 +15,7 @@ if [ "$BUILD" == "Y" ]; then
 
     git clone ${APP_GIT_BASE}${APP_GIT_REPO}
     cd $APP_GIT_REPO
-
+    git checkout confluent
     sed -i "s@FROM ubuntu:latest@FROM ${ZETA_DOCKER_REG_URL}/${REQ_APP_IMG_NAME}@g" ./Dockerfile
     sudo docker build -t $APP_IMG .
 
