@@ -1,0 +1,41 @@
+#!/bin/bash
+
+APP_VER="1.9.0"
+PROTOBUF_VER="2.5.0"
+THRIFT_VER="0.7.0"
+MVN_VER="3.3.9"
+APP_URL_BASE="https://github.com/apache/parquet-mr/archive"
+APP_URL_FILE="apache-parquet-${APP_VER}.tar.gz"
+
+APP_URL_DIR="parquet-mr-apache-parquet-${APP_VER}"
+
+APP_IMG_NAME="parqtools"
+APP_IMG_TAG="$APP_VER"
+
+APP_IMG="${ZETA_DOCKER_REG_URL}/${APP_IMG_NAME}:${APP_IMG_TAG}"
+
+REQ_APP_IMG_NAME="buildbase"
+
+if [ "$BUILD" == "Y" ]; then
+cat > ./Dockerfile << EOF
+FROM ${ZETA_DOCKER_REG_URL}/$REQ_APP_IMG_NAME
+
+WORKDIR /app
+
+RUN wget https://github.com/google/protobuf/releases/download/v${PROTOBUF_VER}/protobuf-${PROTOBUF_VER}.tar.gz && tar xzf protobuf-${PROTOBUF_VER}.tar.gz && cd  protobuf-${PROTOBUF_VER} && ./configure && make && make install && ldconfig && cd .. && rm -rf protobuf-${PROTOBUF_VER} && rm -rf protobuf-${PROTOBUF_VER}.tar.gz
+
+RUN wget -nv http://archive.apache.org/dist/thrift/${THRIFT_VER}/thrift-${THRIFT_VER}.tar.gz && tar xzf thrift-${THRIFT_VER}.tar.gz && cd thrift-${THRIFT_VER} && chmod +x ./configure && ./configure --disable-gen-erl --disable-gen-hs --without-ruby --without-haskell --without-erlang && make install && ldconfig && cd .. && rm -rf thrift-${THRIFT_VER}.tar.gz && rm -rf thrift-${THRIFT_VER}
+
+ENV PATH=\$PATH:/app/apache-maven-${MVN_VER}/bin
+ENV LC_ALL=C
+
+RUN wget http://apache.claz.org/maven/maven-3/${MVN_VER}/binaries/apache-maven-${MVN_VER}-bin.tar.gz && tar xzf apache-maven-${MVN_VER}-bin.tar.gz && wget ${APP_URL_BASE}/${APP_URL_FILE} && tar zxf ${APP_URL_FILE}  && cd ${APP_URL_DIR} && mvn clean package -Plocal -DskipTests -Dhadoop.scope=compile && cd .. && mv /app/parquet-mr-apache-parquet-1.9.0 / && rm -rf /app/* && mv /parquet-mr-apache-parquet-1.9.0 /app/ && rm -rf /root/.m2
+
+#RUN wget ${APP_URL_BASE}/${APP_URL_FILE} && tar zxf ${APP_URL_FILE}  && cd ${APP_URL_DIR} && mvn install --batch-mode -DskipTests=true -Dmaven.javadoc.skip=true -Dsource.skip=true
+
+CMD ["/bin/bash"]
+EOF
+
+fi
+
+

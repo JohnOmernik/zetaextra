@@ -115,6 +115,12 @@ export TMP_PART_DIR=".tmp"
 # Turn on verbose logging.  For Silence export DEBUG=0
 export DEBUG=0
 
+# Write to the live output directory (This can cause query errors, but you get faster access to data) If set to 0 then it will write to the tmp directory until the file is closed, then move to main dir. 
+export WRITE_LIVE=0
+
+# Does the data have NULLs? See fastparquet docs for details
+export HAS_NULLS=0
+
 # Instead of discarding a record that fails to be made into JSON, this tries to remove teh request body (often containing binary data and the cause of the issue) and keep the require but drop the body data 
 export DROP_REQ_BODY_ON_ERROR=1
 
