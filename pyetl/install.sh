@@ -121,8 +121,8 @@ export WRITE_LIVE=0
 # Does the data have NULLs? See fastparquet docs for details
 export HAS_NULLS=0
 
-# Instead of discarding a record that fails to be made into JSON, this tries to remove teh request body (often containing binary data and the cause of the issue) and keep the require but drop the body data 
-export DROP_REQ_BODY_ON_ERROR=1
+export REMOVE_FIELDS_ON_FAIL=1 # Set to 1 to remove fields, starting left to right in the variable REMOVE_FIELDS to see if the json parsing works
+export REMOVE_FIELDS="request_body_str,http_request" # If REMOVE_FIELDS_ON_FAIL is set to 1, and there is an error, the parser will remove the data from fields left to right, once json conversion works, it will break and move on (so not all fields may be removed)
 
 # Run Py ETL!
 python3 -u /app/code/pyparq.py

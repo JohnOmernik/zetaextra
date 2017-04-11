@@ -1,0 +1,23 @@
+#!/bin/bash
+
+APP_VER="1.0.0"
+
+APP_IMG_NAME="pyhbaseetl"
+APP_IMG_TAG="$APP_VER"
+
+APP_GIT_BASE="https://github.com/JohnOmernik/"
+APP_GIT_REPO="pyhbaseetl"
+
+APP_IMG="${ZETA_DOCKER_REG_URL}/${APP_IMG_NAME}:${APP_IMG_TAG}"
+REQ_APP_IMG_NAME="buildbase"
+
+if [ "$BUILD" == "Y" ]; then
+
+    git clone ${APP_GIT_BASE}${APP_GIT_REPO}
+    cd $APP_GIT_REPO
+    cp -R /opt/mapr/lib ./
+    cp -R /opt/mapr/include ./
+    sed -i "s@FROM ubuntu:latest@FROM ${ZETA_DOCKER_REG_URL}/${REQ_APP_IMG_NAME}@g" ./Dockerfile
+    sudo docker build -t $APP_IMG .
+
+fi

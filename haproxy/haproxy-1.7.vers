@@ -1,0 +1,22 @@
+#!/bin/bash
+
+APP_VER="1.7"
+
+APP_GIT_BASE="https://github.com/docker-library"
+APP_GIT_FILE="haproxy"
+
+
+APP_IMG_NAME="haproxy"
+APP_IMG_TAG="$APP_VER"
+
+APP_IMG="${ZETA_DOCKER_REG_URL}/${APP_IMG_NAME}:${APP_IMG_TAG}"
+
+if [ "$BUILD" == "Y" ]; then
+
+
+git clone "${APP_GIT_BASE}/${APP_GIT_FILE}"
+cd $APP_GIT_FILE
+cd $APP_VER
+cd alpine
+
+fi

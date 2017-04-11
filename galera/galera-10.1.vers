@@ -1,0 +1,24 @@
+#!/bin/bash
+
+APP_VER="10.1"
+APP_IMG_TAG="$APP_VER"
+APP_IMG_NAME="galera"
+APP_IMG="${ZETA_DOCKER_REG_URL}/${APP_IMG_NAME}:${APP_IMG_TAG}"
+
+APP_GIT="https://github.com/docker-library"
+APP_GIT_REPO="mariadb"
+
+
+if [ "$BUILD" == "Y" ]; then
+    git clone "${APP_GIT}/${APP_GIT_REPO}"
+    cd ${APP_GIT_REPO}
+    cd ${APP_VER}
+    @go.log WARN "This repo remaps the mysql user to $IUSER"
+    sed -i "s/groupadd /groupadd -g 2500 /g" ./Dockerfile
+    sed -i "s/useradd /useradd -u 2500 /g" ./Dockerfile
+
+    
+
+
+
+fi
