@@ -1,0 +1,39 @@
+#!/bin/bash
+
+APP_VER="1.5.5"
+APP_VER_DIR="rancher-$APP_VER"
+APP_IMG_TAG="$APP_VER"
+
+APP_IMG_NAME="rancherserver"
+REQ_APP_IMG_NAME="buildbase"
+
+APP_IMG="${ZETA_DOCKER_REG_URL}/${APP_IMG_NAME}:${APP_IMG_TAG}"
+
+APP_URL_BASE="https://github.com/rancher/rancher/archive"
+APP_URL_FILE="v1.5.5.tar.gz"
+
+
+if [ "$BUILD" == "Y" ]; then
+
+    wget ${APP_URL_BASE}/$APP_URL_FILE
+
+    if [ "$?" != "0" ]; then
+        read -e -p "Try Download with no check cert?" -i "N" RETRY
+        if [ "$RETRY" != "Y" ]; then
+            @go.log FATAL "Download of ${APP_URL_BASE}/$APP_URL_FILE failed"
+        fi
+        wget --no-check-certificate ${APP_URL_BASE}/${APP_URL_FILE}
+    fi
+    tar zxf $APP_URL_FILE
+    cd $APP_VER_DIR
+    cd server
+    if [ ! -e target/.done ]; then
+        mkdir -p target
+        curl -sL -o target/s6-overlay-x86-static.tar.gz https://github.com/just-containers/s6-overlay/releases/download/v1.19.1.1/s6-overlay-x86.tar.gz
+        touch target/.done
+    fi
+
+    sed -i "s@FROM .*@FROM ${ZETA_DOCKER_REG_URL}/${REQ_APP_IMG_NAME}@" ./Dockerfile
+    sed -i '/FROM /a WORKDIR \/' ./Dockerfile
+    sed -i '/local_policy/d' ./Dockerfile
+fi

@@ -1,4 +1,4 @@
 #!/bin/bash
 
 DEF_APP_VERS="haproxy-1.7.vers"
-REC_DIR="apps"
+REC_DIR="zeta"

@@ -1,0 +1,4 @@
+#!/bin/bash
+
+DEF_APP_VERS="rancheragent-1.2.2.vers"
+REC_DIR="zeta"

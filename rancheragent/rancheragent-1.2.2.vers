@@ -1,0 +1,5 @@
+#!/bin/bash
+
+
+ APP_IMG="rancher/agent:v1.2.2"
+

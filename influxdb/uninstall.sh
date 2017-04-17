@@ -24,34 +24,38 @@ else
     read -e -p "Are you sure you wish to go on with this action? " -i "N" CONFIRM
 fi
 if [ "$CONFIRM" == "Y" ]; then
-    NODEDIRS=$(ls -1 $APP_HOME|grep node)
 
     @go.log WARN "Proceeding with uninstall of $APP_ID"
+
     @go.log INFO "Stopping $APP_ID"
-    if [ "$APP_MAR_ID" != "" ]; then
-       ./zeta package stop $CONF_FILE
-    fi
+    ./zeta package stop $CONF_FILE
+
     @go.log INFO "Removing ENV file at $APP_ENV_FILE"
     if [ -f "$APP_ENV_FILE" ]; then
         rm $APP_ENV_FILE
     fi
-    for ND in $NODEDIRS; do
-        MAR_ID="$APP_ROLE/$APP_ID/$ND"
-        @go.log INFO "Destroying $MAR_ID in marathon"
-        if [ "$MAR_ID" != "" ]; then
-            ./zeta cluster marathon destroy $MAR_ID $MARATHON_SUBMIT 1
-        fi
-    done
+
+    @go.log INFO "Destroying $APP_MAR_ID in marathon"
+    ./zeta cluster marathon destroy $APP_MAR_ID $MARATHON_SUBMIT 1
+
     @go.log INFO "Removing ports for $APP_ID"
     APP_STR="${APP_ROLE}:${APP_ID}"
     sed -i "/${APP_STR}/d" ${SERVICES_CONF}
 
     if [ "$DESTROY" == "1" ]; then
-        for ND in $NODEDIRS; do
-            VOL="${APP_DIR}.${APP_ROLE}.${APP_ID}.${ND}"
-            MNT="/${APP_DIR}/${APP_ROLE}/${APP_NAME}/${APP_ID}/${ND}/data"
-            fs_rmdir "RETCODE" "$MNT"
-        done
+        @go.log WARN "Removing FS Volumes for $APP_ID"
+        VOL="${APP_DIR}.${APP_ROLE}.${APP_ID}.meta"
+        MNT="/${APP_DIR}/${APP_ROLE}/${APP_NAME}/${APP_ID}/meta"
+        fs_rmdir "RETCODE" "$MNT"
+
+        VOL="${APP_DIR}.${APP_ROLE}.${APP_ID}.data"
+        MNT="/${APP_DIR}/${APP_ROLE}/${APP_NAME}/${APP_ID}/data"
+        fs_rmdir "RETCODE" "$MNT"
+
+        VOL="${APP_DIR}.${APP_ROLE}.${APP_ID}.wal"
+        MNT="/${APP_DIR}/${APP_ROLE}/${APP_NAME}/${APP_ID}/wal"
+        fs_rmdir "RETCODE" "$MNT"
+
         @go.log WARN "Also removing all data for app"
         sudo rm -rf $APP_HOME
     fi

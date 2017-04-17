@@ -1,0 +1,4 @@
+#!/bin/bash
+
+DEF_APP_VERS="rancherserver-1.5.5.vers"
+REC_DIR="zeta"
