@@ -1,0 +1,33 @@
+#!/bin/bash
+
+APP_VER="1.6.13"
+
+
+APP_IMG_NAME="nfdump"
+APP_IMG_TAG="$APP_VER"
+
+APP_IMG="${ZETA_DOCKER_REG_URL}/${APP_IMG_NAME}:${APP_IMG_TAG}"
+REQ_APP_IMG_NAME="buildbase"
+
+APP_URL_BASE="https://downloads.sourceforge.net/project/nfdump/stable/nfdump-1.6.13"
+APP_URL_FILE="nfdump-1.6.13.tar.gz"
+
+if [ "$BUILD" == "Y" ]; then
+
+cat > ./Dockerfile << EOF
+
+FROM ${ZETA_DOCKER_REG_URL}/$REQ_APP_IMG_NAME
+
+WORKDIR /app
+
+
+RUN apt-get update && apt-get install -y python-pip build-essential libsnappy-dev gcc flex librrd-dev make
+
+RUN wget ${APP_URL_BASE}/${APP_URL_FILE} && tar zxf $APP_URL_FILE && cd nfdump-$APP_VER && ./configure --enable-nfprofile --enable-nftrack && make && make install
+
+
+
+CMD ["/bin/bash"]
+EOF
+
+fi

@@ -1,0 +1,4 @@
+#!/bin/bash
+
+DEF_APP_VERS="nfdump-1.6.13.vers"
+REC_DIR="zeta"
