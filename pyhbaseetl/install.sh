@@ -60,6 +60,7 @@ export TIMEMAX=10  # seconds since last write to force a write # The number of s
 # This is where you want to write the maprdb table.
 export TABLE_BASE="ENTERTABLE"
 
+# Note for the ROW_KEY_FIELDS you can also use RANDOMROWKEYVAL in there (in addition to your items) if you need to add some entropy to the row key 
 export ROW_KEY_FIELDS='col1,col2' # This is the field(s)  in your json you want to use as the hbase/maprdb row key If you want to concat fields, seperate by a comma and ensure your printed delim is correct
 export ROW_KEY_DELIM="_"  # This is the character, if you specified your fields as CSV above, that when we concat the fields, we put between them.  so if you have ip,ts as your row_key_fields, and use _ as your delim it may look like 123.123.123.123_2015-12-12 as your key
 export FAMILY_MAPPING='cf1:col1,col2,col3;cf2:col4,col5,col6'
