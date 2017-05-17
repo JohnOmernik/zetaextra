@@ -2,7 +2,7 @@
 
 # To run the maprlibrdkafka you MUST pass the client location  (/opt/mapr) to /opt/mapr ro 
 
-IMG="dockerregv2-shared.marathon.slave.mesos:5005/maprkafkacat-1.0.0"
+IMG="dockerregv2-shared.marathon.slave.mesos:5005/maprkafkacat:1.0.0"
 
 
 MAPR="-v=/opt/mapr:/opt/mapr:ro"
