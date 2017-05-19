@@ -55,7 +55,7 @@ export DEBUG=1
 export BOOTSTRAP_BROKERS="mapr"
 
 # This is the name of the consumer group your client will create/join. If you are running multiple instances this is great, name them the same and Kafka will partition the info 
-export GROUP_ID="pyetl_${APP_ID}_${TOPIC}_group"
+export GROUP_ID="pyetl_${APP_ID}_${TOPIC_ONLY}_group"
 
 # When registering a consumer group, do you want to start at the first data in the queue (earliest) or the last (latest)
 export OFFSET_RESET="earliest"
