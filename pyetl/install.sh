@@ -131,7 +131,7 @@ export TIMEMAX=10  # seconds since last write to force a write # The number of s
 
 
 # Run Py ETL!
-if [ "$DEST_TYPE" == "maprdb" ]; then
+if [ "\$DEST_TYPE" == "maprdb" ]; then
     # Mapr DB requires Python 2
     python -u /app/code/pyetl.py
 else
