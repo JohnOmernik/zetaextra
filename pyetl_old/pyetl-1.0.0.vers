@@ -12,10 +12,10 @@ APP_IMG="${ZETA_DOCKER_REG_URL}/${APP_IMG_NAME}:${APP_IMG_TAG}"
 REQ_APP_IMG_NAME="buildbase"
 
 if [ "$BUILD" == "Y" ]; then
-    git clone ${APP_GIT_BASE}/${APP_GIT_REPO}
-    cd ${APP_GIT_REPO}
-    ./build_docker.sh -a
+
+    git clone ${APP_GIT_BASE}${APP_GIT_REPO}
+    cd $APP_GIT_REPO
     sed -i "s@FROM ubuntu:latest@FROM ${ZETA_DOCKER_REG_URL}/${REQ_APP_IMG_NAME}@g" ./Dockerfile
     sudo docker build -t $APP_IMG .
-    sudo docker push $APP_IMG
+
 fi

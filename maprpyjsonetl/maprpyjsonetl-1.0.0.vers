@@ -1,0 +1,33 @@
+#!/bin/bash
+
+APP_VER="1.0.0"
+
+APP_IMG_NAME="maprpyjsonetl"
+APP_IMG_TAG="$APP_VER"
+
+APP_GIT_BASE="https://github.com/JohnOmernik/"
+APP_GIT_REPO="pyjsonetl"
+
+APP_IMG="${ZETA_DOCKER_REG_URL}/${APP_IMG_NAME}:${APP_IMG_TAG}"
+REQ_APP_IMG_NAME="maprlibrdkafka:1.0.0"
+
+if [ "$BUILD" == "Y" ]; then
+git clone ${APP_GIT_BASE}/${APP_GIT_REPO}
+cd ${APP_GIT_REPO}
+rm ./Dockerfile
+cat > ./Dockerfile << EOF
+FROM ${ZETA_DOCKER_REG_URL}/$REQ_APP_IMG_NAME
+
+WORKDIR /app
+
+RUN pip3 install requests
+
+ADD pyjson.py /app/code/
+
+CMD ["/bin/bash"]
+EOF
+    sudo docker build -t $APP_IMG .
+    sudo docker push $APP_IMG
+fi
+
+

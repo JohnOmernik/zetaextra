@@ -1,0 +1,43 @@
+#!/bin/bash
+
+APP_VER="1.0.0"
+
+APP_IMG_NAME="maprpyhbaseetl"
+APP_IMG_TAG="$APP_VER"
+
+APP_GIT_BASE="https://github.com/JohnOmernik/"
+APP_GIT_REPO="pyhbaseetl"
+
+APP_IMG="${ZETA_DOCKER_REG_URL}/${APP_IMG_NAME}:${APP_IMG_TAG}"
+REQ_APP_IMG_NAME="maprlibrdkafka:1.0.0"
+
+if [ "$BUILD" == "Y" ]; then
+    git clone ${APP_GIT_BASE}/${APP_GIT_REPO}
+    cd ${APP_GIT_REPO}
+    cp -R /opt/mapr/lib ./
+    cp -R /opt/mapr/include ./
+    rm ./Dockerfile
+cat > ./Dockerfile << EOF
+FROM ${ZETA_DOCKER_REG_URL}/$REQ_APP_IMG_NAME
+
+WORKDIR /app
+
+ADD lib /opt/mapr/lib
+ADD include /opt/mapr/include
+
+ENV LD_LIBRARY_PATH=/usr/lib/jvm/java-8-openjdk-amd64/jre/lib/amd64/server:/opt/mapr/lib
+ENV PYCHBASE_LIBJVM_DIR=/usr/lib/jvm/java-8-openjdk-amd64/jre/lib/amd64/server
+ENV LD_PRELOAD=/usr/lib/jvm/java-8-openjdk-amd64/jre/lib/amd64/server/libjvm.so
+
+RUN git clone https://github.com/mkmoisen/pychbase.git && cd pychbase && sed -i "s/library_dirs=library_dirs,/library_dirs=library_dirs,extra_compile_args=['-fpermissive'],/g" setup.py && python setup.py install && cd .. && rm -rf pychbase
+
+ADD pybase.py /app/code/
+
+CMD ["/bin/bash"]
+
+EOF
+
+
+    sudo docker build -t $APP_IMG .
+    sudo docker push $APP_IMG
+fi
