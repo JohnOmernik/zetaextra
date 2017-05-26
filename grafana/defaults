@@ -1,4 +1,4 @@
 #!/bin/bash
 
-DEF_APP_VERS="grafana-4.2.0.vers"
+DEF_APP_VERS="grafana-4.3.1.vers"
 REC_DIR="zeta"

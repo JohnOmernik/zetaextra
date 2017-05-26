@@ -1,0 +1,4 @@
+#!/bin/bash
+
+DEF_APP_VERS="mapropentsdb-2.3.0.vers"
+REC_DIR="zeta"

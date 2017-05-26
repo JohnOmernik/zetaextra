@@ -28,7 +28,6 @@ bridgeports "APP_PORT_JSON" "3000" "$APP_PORTSTR"
 haproxylabel "APP_HA_PROXY" "${APP_PORTSTR}"
 portslist "APP_PORT_LIST" "$APP_PORTSTR"
 
-APP_HOSTNAME="${APP_ID}.${APP_ROLE}.marathon.slave.mesos"
 APP_MAR_FILE="${APP_HOME}/marathon.json"
 APP_ENV_FILE="$CLUSTERMOUNT/zeta/kstore/env/env_${APP_ROLE}/${APP_NAME}_${APP_ID}.sh"
 
@@ -37,7 +36,12 @@ APP_PLUGINS_DIR="$APP_HOME/plugins"
 APP_DATA_DIR="$APP_HOME/data"
 APP_LOG_DIR="$APP_HOME/log"
 
-APP_API_URL="$APP_HOSTNAME:$APP_MAIN_PORT"
+
+APP_SUB=$(echo "$APP_MAR_ID"|sed "s@/@ @g")
+APP_OUT=$(echo "$APP_SUB"| sed 's/ /\n/g' | tac | sed ':a; $!{N;ba};s/\n/ /g'|tr " " "-")
+
+APP_API_URL="http://${APP_OUT}.marathon.slave.mesos:$APP_PORT"
+
 
 mkdir -p $APP_CONF_DIR
 sudo chown -R $APP_USER:$IUSER $APP_CONF_DIR

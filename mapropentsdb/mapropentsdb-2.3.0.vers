@@ -1,0 +1,52 @@
+#!/bin/bash
+
+APP_VER="2.3.0"
+APP_URL_BASE="https://github.com/OpenTSDB/opentsdb/releases/download/v2.3.0/"
+APP_URL_FILE="opentsdb-2.3.0_all.deb"
+
+ASYNC_BASE="http://repository.mapr.com/nexus/content/groups/mapr-public/org/hbase/asynchbase/1.7.0-mapr-1607/"
+ASYNC_FILE="asynchbase-1.7.0-mapr-1607.jar"
+
+MAPR_CLIENT_BASE="http://package.mapr.com/releases/v5.2.1/ubuntu/"
+MAPR_CLIENT_FILE="mapr-client-5.2.1.42646.GA-1.amd64.deb"
+
+
+APP_URL="${APP_URL_BASE}${APP_URL_FILE}"
+
+
+APP_IMG_NAME="mapropentsdb"
+APP_IMG_TAG="$APP_VER"
+
+APP_IMG="${ZETA_DOCKER_REG_URL}/${APP_IMG_NAME}:${APP_IMG_TAG}"
+REQ_APP_IMG_NAME="buildbase"
+
+if [ "$BUILD" == "Y" ]; then
+
+cat > ./Dockerfile << EOF
+
+FROM ${ZETA_DOCKER_REG_URL}/$REQ_APP_IMG_NAME
+
+RUN mkdir -p /opt/opentsdb
+
+WORKDIR /opt/opentsdb
+
+# Install GNU PLot
+RUN apt-get update && apt-get install -y gnuplot syslinux && apt-get clean && apt-get autoremove -y
+
+# Install MapR Client
+RUN wget ${MAPR_CLIENT_BASE}${MAPR_CLIENT_FILE} && dpkg -i $MAPR_CLIENT_FILE && rm $MAPR_CLIENT_FILE
+
+# Get OpenTSDB .deb and install
+RUN wget $APP_URL && dpkg -i $APP_URL_FILE && rm $APP_URL_FILE 
+
+# Get the MapR Packages needed to update the libraries
+RUN git clone https://github.com/mapr-demos/opentsdb-maprdb-install && cd opentsdb-maprdb-install && sed -i "s@HADOOP_HOME=.*@HADOOP_HOME=/opt/mapr/hadoop/hadoop-2.7.0@g" install.sh && ./install.sh
+
+RUN rm /usr/share/opentsdb/lib/asynchbase-1.6.0-mapr-1503.jar && wget ${ASYNC_BASE}${ASYNC_FILE} && mv $ASYNC_FILE /usr/share/opentsdb/lib/ && rm /usr/share/opentsdb/lib/guava-14.0.1.jar
+
+ENV PATH=\$PATH:/usr/share/opentsdb/bin
+
+CMD ["/bin/bash"]
+EOF
+
+fi

@@ -1,0 +1,37 @@
+#!/bin/bash
+
+APP_VER="4.3.1"
+
+APP_URL_BASE="https://s3-us-west-2.amazonaws.com/grafana-releases/release"
+APP_URL_FILE="grafana_${APP_VER}_amd64.deb"
+APP_URL="${APP_URL_BASE}/${APP_URL_FILE}"
+
+APP_IMG_NAME="grafana"
+APP_IMG_TAG="$APP_VER"
+
+APP_IMG="${ZETA_DOCKER_REG_URL}/${APP_IMG_NAME}:${APP_IMG_TAG}"
+REQ_APP_IMG_NAME="buildbase"
+
+
+if [ "$BUILD" == "Y" ]; then
+
+
+
+cat > ./Dockerfile << EOF
+FROM ${ZETA_DOCKER_REG_URL}/$REQ_APP_IMG_NAME
+
+RUN apt-get update && \
+    apt-get -y --no-install-recommends install libfontconfig curl ca-certificates && \
+    apt-get clean && \
+    curl ${APP_URL} > /tmp/grafana.deb && \
+    dpkg -i /tmp/grafana.deb && \
+    rm /tmp/grafana.deb && \
+    curl -L https://github.com/tianon/gosu/releases/download/1.7/gosu-amd64 > /usr/sbin/gosu && \
+    chmod +x /usr/sbin/gosu && \
+    apt-get autoremove -y && \
+    rm -rf /var/lib/apt/lists/*
+
+CMD ["/bin/bash"]
+EOF
+
+fi
