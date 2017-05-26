@@ -119,7 +119,7 @@ http {
     }
     server {
         listen              443 ssl;
-        server_name         farkingtsdblb-farkit-prod.marathon.slave.mesos;
+        server_name         ${APP_OUT}.marathon.slave.mesos;
         $CONF_AUTH
 
         ssl_certificate     /etc/nginx/certs/cert.pem;
