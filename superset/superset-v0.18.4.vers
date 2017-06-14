@@ -1,6 +1,6 @@
 #!/bin/bash
 
-APP_VER="0.17.0"
+APP_VER="0.18.4"
 
 APP_IMG_NAME="superset"
 APP_IMG_TAG="$APP_VER"

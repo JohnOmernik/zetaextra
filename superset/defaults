@@ -1,4 +1,4 @@
 #!/bin/bash
 
-DEF_APP_VERS="superset-v0.15.4.vers"
+DEF_APP_VERS="superset-v0.18.4.vers"
 REC_DIR="zeta"

@@ -1,0 +1,4 @@
+#!/bin/bash
+
+DEF_APP_VERS="jupyterhub-0.7.2.vers"
+REC_DIR="zeta"

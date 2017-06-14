@@ -1,0 +1,26 @@
+#!/bin/bash
+
+APP_VER="1.0.0"
+
+
+APP_IMG_NAME="kubernetes"
+APP_IMG_TAG="$APP_VER"
+
+APP_IMG="${ZETA_DOCKER_REG_URL}/${APP_IMG_NAME}:${APP_IMG_TAG}"
+
+REQ_APP_IMG_NAME="golang:1.8.1"
+
+
+if [ "$BUILD" == "Y" ]; then
+cat > ./Dockerfile << EOF
+FROM ${ZETA_DOCKER_REG_URL}/${REQ_APP_IMG_NAME}
+
+RUN git clone https://github.com/kubernetes-incubator/kube-mesos-framework && cd kube-mesos-framework && make
+
+CMD ["/bin/bash"]
+
+EOF
+
+    sudo docker build -t $APP_IMG .
+    sudo docker push $APP_IMG
+fi
