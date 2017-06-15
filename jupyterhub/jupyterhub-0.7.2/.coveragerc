@@ -1,4 +1,0 @@
-[run]
-omit =
-    jupyterhub/tests/*
-    jupyterhub/alembic/*
