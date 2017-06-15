@@ -63,6 +63,7 @@ APP_DATA_DIR="$APP_HOME/data"
 APP_LOG_DIR="$APP_HOME/log"
 APP_CERT_LOC="$APP_HOME/certs"
 APP_BUILD_DIR="$APP_HOME/Dockerbuild"
+APP_TEMPLATE_DIR="$APP_HOME/templates"
 
 @go.log WARN "Creating Application Directories and Securing them"
 mkdir -p $APP_CONF_DIR
@@ -70,11 +71,13 @@ mkdir -p $APP_LOG_DIR
 mkdir -p $APP_DATA_DIR
 mkdir -p $APP_CERT_LOC
 mkdir -p $APP_BUILD_DIR
+mkdir -p $APP_TEMPLATE_DIR
 mkdir -p $APP_SHARED_NOTEBOOK_DIR
 sudo chown -R $IUSER:zeta${APP_ROLE}data $APP_CONF_DIR
 sudo chown -R $IUSER:$IUSER $APP_LOG_DIR
 sudo chown -R $IUSER:$IUSER $APP_BUILD_DIR
 sudo chown -R $IUSER:$IUSER $APP_DATA_DIR
+sudo chown -R $IUSER:$IUSER $APP_TEMPLATE_DIR
 sudo chown -R $IUSER:zeta${APP_ROLE}data $APP_SHARED_NOTEBOOK_DIR
 sudo chown -R $IUSER:$IUSER $APP_CERT_LOC
 sudo chmod 770 $APP_CONF_DIR
@@ -82,7 +85,14 @@ sudo chmod 770 $APP_DATA_DIR
 sudo chmod 770 $APP_BUILD_DIR
 sudo chmod 770 $APP_SHARED_NOTEBOOK_DIR
 sudo chmod 770 $APP_LOG_DIR
+sudo chmod 770 $APP_TEMPLATE_DIR
 sudo chmod 770 $APP_CERT_LOC
+echo ""
+@go.log WARN "Copying templates for user shells to $APP_TEMPLATE_DIR"
+cp ${APP_PKG_BASE}/lib/profile_template ${APP_TEMPLATE_DIR}/
+cp ${APP_PKG_BASE}/lib/nanorc_template ${APP_TEMPLATE_DIR}/
+cp ${APP_PKG_BASE}/lib/bashrc_template ${APP_TEMPLATE_DIR}/
+echo ""
 
 @go.log WARN "Generating Certificate"
 . $CLUSTERMOUNT/zeta/shared/zetaca/gen_server_cert.sh
@@ -94,6 +104,42 @@ sudo chown zetaadm:zetaadm $APP_CONF_DIR/jupyterhub_config.py
 mv $APP_CONF_DIR/jupyterhub_config.py $APP_CONF_DIR/jupyterhub_config.py.template
 
 
+@go.log WARN "Creating adduser shell script in $APP_HOME"
+
+@go.log WARN "The following three questions ask for home locations to provide access in the notebook containers. Clear (provide no answer) if you want to not link these apps"
+@go.log WARN "Please ensure these home directories are accurate, or users will not get a good expierience"
+echo ""
+read -e -p "Please provide a Hadoop Home location (clear if you don't want to link in container). Usually the default works: " -i "/opt/mapr/hadoop/hadoop-2.7.0" APP_HADOOP
+echo ""
+read -e -p "Please provide a Drill Home location. This is the full path to the drill directory under your app instance (with version number in directory name): " -i "$CLUSTERMOUNT/zeta/prod/drill/drillprod/drill-0.10.0" APP_DRILL
+echo ""
+read -e -p "Please provide a Spark Home location. This is the full path to the spark directory under your app instace (Likely with version bin with hadoop in the directory name): " -i "$CLUSTERMOUNT/zeta/prod/spark/sparkprod/spark-2.1.1-bin-without-hadoop" APP_SPARK
+echo ""
+cat > $APP_HOME/adduser.sh << EOA
+#!/bin/bash
+CLUSTERNAME="$CLUSTERNAME"
+CLUSTERMOUNT="$CLUSTERMOUNT"
+APP_ROLE="$APP_ROLE"
+IUSER="$IUSER"
+APP_ID="$APP_ID"
+USER_BASE="$CLUSTERMOUNT/user"
+APP_HOME="$APP_HOME"
+APP_CONF="${APP_HOME}/conf"
+APP_TEMPLATES="${APP_HOME}/templates"
+USER_LIST="\${APP_CONF}/users.json"
+JUP_CONF="\${APP_CONF}/jupyterhub_config.py"
+APP_VER="$APP_VER"
+ZETAGO="`pwd`"
+REG_URL="$ZETA_DOCKER_REG_URL"
+FS_HADOOP_HOME="$APP_HADOOP"
+DRILL_HOME="$APP_DRILL"
+SPARK_HOME="$APP_SPARK"
+
+EOA
+
+cat ${APP_PKG_BASE}/adduser.sh >> $APP_HOME/adduser.sh
+chmod +x $APP_HOME/adduser.sh
+
 @go.log WARN "Creating ENV File at $APP_ENV_FILE"
 cat > $APP_ENV_FILE << EOL1
 #!/bin/bash
@@ -101,7 +147,7 @@ export ZETA_${APP_NAME}_${APP_ID}_HOST="${CN_GUESS}"
 export ZETA_${APP_NAME}_${APP_ID}_PORT="${APP_WEB_PORT}"
 EOL1
 
-APP_NOTEBOOK_IMG="dockerregv2-shared.marathon.slave.mesos:5005/jupyternotebook:$APP_VER"
+APP_NOTEBOOK_IMG="$ZETA_DOCKER_REG_URL/jupyternotebook:$APP_VER"
 @go.log WARN "Using $APP_NOTEBOOK_IMG as notebook image - Can be changed by building a new image at $APP_BUILD_DIR and updating the configuration"
 cat > $APP_BUILD_DIR/build.sh << EOB
 #!/bin/bash
@@ -114,7 +160,7 @@ EOB
 chmod +x $APP_BUILD_DIR/build.sh
 
 cat > $APP_BUILD_DIR/Dockerfile << EOD
-FROM dockerregv2-shared.marathon.slave.mesos:5005/anaconda3:4.3.1
+FROM $ZETA_DOCKER_REG_URL/anaconda3:4.3.1
 
 WORKDIR /app
 
@@ -142,7 +188,7 @@ APP_PROXY_TOKEN=$(openssl rand -hex 3)
 
 cat > $APP_CONF_DIR/users.json << EOX
 # One user per line - Format:
-# { "user": "username", "user_cpu": "1", "user_mem": "2G", "user_ssh_port": 10500, "user_web_port:" 10400, "user_net_mode": "BRIDGE", "user_image": "$APP_IMG"}
+# { "user": "username", "user_cpu": "1", "user_mem": "2G", "user_ssh_port": 10500, "user_web_port:" 10400, "user_net_mode": "BRIDGE", "user_image": "$APP_IMG", "marathon_constraints": [], "volumes": []}
 
 EOX
 sudo chown $IUSER:zeta${APP_ROLE}data $APP_CONF_DIR/users.json
@@ -205,7 +251,14 @@ c.JupyterHub.debug_proxy = True
 #  or any single-user servers.
 c.JupyterHub.extra_log_file = '/app/logs/jupyterhub.log'
 
-#
+# This culls notebook servers that have not seen proxy trafic in 4 hours (14000 seconds)
+c.JupyterHub.services = [
+    {
+        'name': 'cull-idle',
+        'admin': True,
+        'command': 'python cull_idle_servers.py --timeout=14000'.split(),
+    }
+]
 
 c.JupyterHub.hub_ip = '0.0.0.0'
 
@@ -287,7 +340,15 @@ c.MarathonSpawner.shared_notebook_dir = "$APP_SHARED_NOTEBOOK_DIR"
 c.MarathonSpawner.marathon_host = 'http://leader.mesos:8080'
 c.MarathonSpawner.hub_ip_connect = os.environ['HUB_IP_CONNECT']
 c.MarathonSpawner.hub_port_connect = int(os.environ['HUB_PORT_CONNECT'])
-c.MarathonSpawner.volumes = [{"containerPath": "/home/{username}", "hostPath": "/zeta/brewpot/user/{username}","mode": "RW"},{"containerPath": "/zeta", "hostPath": "/zeta","mode": "RW"}]
+myvols = []
+
+myvols.append({"containerPath": "/home/{username}", "hostPath": "${CLUSTERMOUNT}/user/{username}","mode": "RW"})
+myvols.append({"containerPath": "$FS_HOME", "hostPath": "$FS_HOME","mode": "RO"})
+myvols.append({"containerPath": "/opt/mesosphere", "hostPath": "/opt/mesosphere","mode": "RO"})
+myvols.append({"containerPath": "$CLUSTERMOUNT", "hostPath": "$CLUSTERMOUNT","mode": "RW"})
+
+c.MarathonSpawner.volumes = myvols
+
 
 
 
