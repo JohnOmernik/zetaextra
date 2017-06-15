@@ -27,7 +27,7 @@ read -e -p "Please enter the default app image (name only): " -i "jupyternoteboo
 echo ""
 read -e -p "Please enter the tag to use: " -i "$APP_VER" APP_IMG_TAG
 echo ""
-read -e -p "Please enter the network mode to use (HOST if using Spark etc, else bridge should be ok): " -i "BRIDGE" APP_NET_MODE
+read -e -p "Please enter the network mode to use (HOST if using Spark etc, else bridge should be ok): " -i "HOST" APP_NET_MODE
 echo ""
 
 
@@ -38,12 +38,14 @@ if [ "$CHK" != "" ]; then
     CHKR=$(echo "$REPOS"|grep "$APP_IMG_TAG")
     if [ "$CHKR" != "" ]; then
         echo "Image: $APP_IMG_NAME:$APP_IMG_TAG Found on $REG_URL"
+        APP_IMG="$REG_URL/$APP_IMG_NAME:$APP_IMG_TAG"
     else
         echo "Found $APP_IMG_NAME on $REG_URL, but no tag $APP_IMG_TAG - Exiting"
         exit 1
     fi
 else
-    echo "Did not find Image $APP_IMG_NAME on $REG_URL - ExitingE"
+    echo "Did not find Image $APP_IMG_NAME on $REG_URL - Exiting"
+    exit 1
 fi
 USER_HOME="${USER_BASE}/${APP_USER}"
 USER_BIN="$USER_HOME/bin"
@@ -173,7 +175,7 @@ bin/pyspark
 EOS
 chmod +x ${USER_PATH}/zetaspark
     fi
-    MYVOLS="[{\"containerPath\": \"/spark\", "hostPath": \"$SPARK_HOME\",\"mode\": \"RW\"}]"
+    MYVOLS="[{\"containerPath\": \"/spark\", \"hostPath\": \"$SPARK_HOME\",\"mode\": \"RW\"}]"
 else
     MYVOLS="[]"
 fi

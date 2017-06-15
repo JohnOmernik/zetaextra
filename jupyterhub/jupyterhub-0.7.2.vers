@@ -16,10 +16,11 @@ if [ "$BUILD" == "Y" ]; then
 cat > ./Dockerfile << EOF
 FROM ${ZETA_DOCKER_REG_URL}/$REQ_APP_IMG_NAME
 
-RUN apt-get update && apt-get install -y npm nodejs-legacy python3 python3-dev python3-pip && npm install -g configurable-http-proxy && pip3 install marathon jupyterhub==$APP_VER && apt-get clean && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y npm nodejs-legacy python3 python3-dev python3-pip && npm install -g configurable-http-proxy && pip3 install python-dateutil marathon jupyterhub==$APP_VER && apt-get clean && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
 
 RUN git clone https://github.com/JohnOmernik/marathonspawner && cd marathonspawner && python3 setup.py install && cd .. && rm -rf ./marathonspawner
-
+WORKDIR /app
+RUN wget https://github.com/jupyterhub/jupyterhub/archive/$APP_VER.tar.gz && tar zxf 0.7.2.tar.gz && mv ./jupyterhub-$APP_VER/examples/* /app && rm -rf $APP_VER.tar.gz && rm -rf ./jupyterhub-0.7.2
 CMD ["/bin/bash"]
 EOF
 

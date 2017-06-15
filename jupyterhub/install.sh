@@ -256,7 +256,7 @@ c.JupyterHub.services = [
     {
         'name': 'cull-idle',
         'admin': True,
-        'command': 'python cull_idle_servers.py --timeout=14000'.split(),
+        'command': 'python3 /app/cull-idle/cull_idle_servers.py --timeout=14000'.split(),
     }
 ]
 
@@ -404,8 +404,8 @@ cat > $APP_MAR_FILE << EOL
 }
 EOL
 
-
-
+@go.log WARN "Running $APP_HOME/adduser.sh - Please add user $APP_ADMIN_USER"
+$APP_HOME/adduser.sh
 
 ##########
 # Provide instructions for next steps
