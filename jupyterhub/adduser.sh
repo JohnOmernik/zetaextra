@@ -181,7 +181,7 @@ else
 fi
 
 
-echo "{\"user\": \"${APP_USER}\", \"cpu_limit\": ${APP_CPU}, \"mem_limit\": \"${APP_MEM}\", \"user_ssh_port\": ${APP_SSH_PORT}, \"user_web_port\": ${APP_WEB_PORT}, \"network_mode\": \"${APP_NET_MODE}\", \"app_image\": \"${APP_IMG}\", \"marathon_constraints\": [], \"volumes\": $MYVOLS}" >> $USER_LIST
+echo "{\"user\": \"${APP_USER}\", \"cpu_limit\": ${APP_CPU}, \"mem_limit\": \"${APP_MEM}\", \"user_ssh_port\": ${APP_SSH_PORT}, \"user_web_port\": ${APP_WEB_PORT}, \"network_mode\": \"${APP_NET_MODE}\", \"app_image\": \"${APP_IMG}\", \"marathon_constraints\": [], \"volumes\": ${MYVOLS}, \"custom_env\": []}" >> $USER_LIST
 
 #  # { "user": "username", "cpu_limit": "1", "mem_limit": "2G", "user_ssh_port": 10500, "user_web_port:" 10400, "network_mode": "BRIDGE", "app_image": "$APP_IMG", "marathon_constraints": []}
 

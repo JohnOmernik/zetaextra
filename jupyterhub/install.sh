@@ -174,7 +174,7 @@ RUN conda config --system --add channels conda-forge
 
 RUN conda install --quiet --yes 'notebook=5.0.*' 'jupyterhub=0.7.2' 'jupyterlab=0.18.*'  && conda clean -tipsy
 
-RUN conda install --yes qgrid ipywidgets && python -c "import qgrid; qgrid.nbinstall(overwrite=True)" && conda clean -tipsy
+RUN conda install --yes mpld3 qgrid ipywidgets && python -c "import qgrid; qgrid.nbinstall(overwrite=True)" && conda clean -tipsy
 
 CMD ["/bin/bash"]
 
