@@ -12,6 +12,12 @@ read -e -p "Is there a shared notebook location this instance will use? Leave bl
 echo ""
 read -e -p "Please provide the admin user for this instance of $APP_NAME: " -i "zetasvc${APP_ROLE}" APP_ADMIN_USER
 echo ""
+read -e -p "Are you going to be using Edwin for your org? (Y/N): " -i "N" USE_EDWIN
+echo ""
+echo "If you would like to specify an Edwin Org Code Location, please do so now"
+echo "This is optional, if you do not specify it, it will not change things, edwin org provides a way to share information amongst teams"
+read -e -p "Please provide a path to edwin_org's code directory: " -i "" EDWIN_ORG_CODE
+echo ""
 @go.log WARN "Obtaining ports for Jupyter Hub itself"
 
 PORTSTR="CLUSTER:tcp:22080:${APP_ROLE}:${APP_ID}:Hub Port for $APP_NAME"
@@ -52,6 +58,11 @@ APP_MAR_ID="$APP_MAR_ID/jupyterhub"
 APP_SUB=$(echo "$APP_MAR_ID"|sed "s@/@ @g")
 APP_OUT=$(echo "$APP_SUB"| sed 's/ /\n/g' | tac | sed ':a; $!{N;ba};s/\n/ /g'|tr " " "-")
 
+NOTE_SUB=$(echo "$APP_MAR_ID_BASE"|sed "s@/@ @g")
+NOTE_OUT=$(echo "$NOTE_SUB"| sed 's/ /\n/g' | tac | sed ':a; $!{N;ba};s/\n/ /g'|tr " " "-")
+
+
+NOTE_URL_BASE="notebooks-${NOTE_OUT}.marathon.slave.mesos"
 
 
 CN_GUESS="${APP_OUT}.marathon.slave.mesos"
@@ -113,6 +124,8 @@ read -e -p "Please provide a Hadoop Home location (clear if you don't want to li
 echo ""
 read -e -p "Please provide a Drill Home location. This is the full path to the drill directory under your app instance (with version number in directory name): " -i "$CLUSTERMOUNT/zeta/prod/drill/drillprod/drill-0.10.0" APP_DRILL
 echo ""
+read -e -p "Please provide the Drill URL for the Home location specified above: " -i "https://drillprod-prod.marathon.slave.mesos:20004" APP_DRILL_URL
+echo ""
 read -e -p "Please provide a Spark Home location. This is the full path to the spark directory under your app instace (Likely with version bin with hadoop in the directory name): " -i "$CLUSTERMOUNT/zeta/prod/spark/sparkprod/spark-2.1.1-bin-without-hadoop" APP_SPARK
 echo ""
 cat > $APP_HOME/adduser.sh << EOA
@@ -133,8 +146,11 @@ ZETAGO="`pwd`"
 REG_URL="$ZETA_DOCKER_REG_URL"
 FS_HADOOP_HOME="$APP_HADOOP"
 DRILL_HOME="$APP_DRILL"
+DRILL_BASE_URL="$APP_DRILL_URL"
 SPARK_HOME="$APP_SPARK"
-
+USE_EDWIN="$USE_EDWIN"
+EDWIN_ORG_CODE="$EDWIN_ORG_CODE"
+NOTE_URL_BASE="$NOTE_URL_BASE"
 EOA
 
 cat ${APP_PKG_BASE}/adduser.sh >> $APP_HOME/adduser.sh
@@ -164,7 +180,22 @@ FROM $ZETA_DOCKER_REG_URL/anaconda3:4.3.1
 
 WORKDIR /app
 
-RUN apt-get update && apt-get upgrade -y && apt-get install -y gcc libnss3 git curl && apt-get clean && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get upgrade -y && apt-get install -y pwgen openssh-server gcc pass libnss3 git curl && apt-get clean && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
+
+RUN echo "root:\$(pwgen -s 16 1)" | chpasswd
+
+RUN mkdir /var/run/sshd
+
+RUN sed -i 's/PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
+
+# SSH login fix. Otherwise user is kicked off after login
+RUN sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' -i /etc/pam.d/sshd
+
+RUN echo "export LESSOPEN='| /usr/bin/lesspipe %s'" >> /etc/profile
+RUN echo "export LESSCLOSE='/usr/bin/lesspipe %s %s'" >> /etc/profile
+RUN echo "export LS_COLORS='rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=00:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arc=01;31:*.arj=01;31:*.taz=01;31:*.lha=01;31:*.lz4=01;31:*.lzh=01;31:*.lzma=01;31:*.tlz=01;31:*.txz=01;31:*.tzo=01;31:*.t7z=01;31:*.zip=01;31:*.z=01;31:*.Z=01;31:*.dz=01;31:*.gz=01;31:*.lrz=01;31:*.lz=01;31:*.lzo=01;31:*.xz=01;31:*.bz2=01;31:*.bz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.war=01;31:*.ear=01;31:*.sar=01;31:*.rar=01;31:*.alz=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.cab=01;31:*.jpg=01;35:*.jpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.webm=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.cgm=01;35:*.emf=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.m4a=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.oga=00;36:*.opus=00;36:*.spx=00;36:*.xspf=00;36:'" >> /etc/profile
+
+RUN sed -i "s/use_authtok //g" /etc/pam.d/common-password
 
 RUN conda update conda
 
@@ -174,7 +205,9 @@ RUN conda config --system --add channels conda-forge
 
 RUN conda install --quiet --yes 'notebook=5.0.*' 'jupyterhub=0.7.2' 'jupyterlab=0.18.*'  && conda clean -tipsy
 
-RUN conda install --yes mpld3 qgrid ipywidgets && python -c "import qgrid; qgrid.nbinstall(overwrite=True)" && conda clean -tipsy
+RUN conda install --yes mpld3 findspark setuptools qgrid ipywidgets && python -c "import qgrid; qgrid.nbinstall(overwrite=True)" && conda clean -tipsy
+
+RUN echo "PATH=$PATH:/opt/conda/bin" >> /etc/environmennt && git clone https://github.com/johnomernik/edwin && pwd && cd edwin && python3 setup.py install
 
 CMD ["/bin/bash"]
 
@@ -317,7 +350,7 @@ c.MarathonSpawner.network_mode = "HOST"
 # {userwebport} - the port of the Jupyter Single User Server
 # {usersshport} - the Port of the SSH connection on the container
 #
-nbcmd = 'export PATH=\$PATH:/opt/conda/bin && env && su -c \"/opt/conda/bin/jupyterhub-singleuser'
+nbcmd = 'export PATH=\$PATH:/opt/conda/bin && sed -i "s/Port 22/Port {usersshport}/g" /etc/ssh/sshd_config && /usr/sbin/sshd && env && su -c \"/opt/conda/bin/jupyterhub-singleuser'
 nbcoreargs="--ip=0.0.0.0"
 nbuserargs="--port={userwebport} --config /home/{username}/.jupyter/jupyter_notebook_config.py --user={username} --notebook-dir=/home/{username}"
 nbhubargs = "--base-url=\$JPY_BASE_URL --hub-prefix=\$JPY_HUB_PREFIX --cookie-name=\$JPY_COOKIE_NAME --hub-api-url=\$JPY_HUB_API_URL"

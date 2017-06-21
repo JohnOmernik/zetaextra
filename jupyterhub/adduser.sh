@@ -29,8 +29,8 @@ read -e -p "Please enter the tag to use: " -i "$APP_VER" APP_IMG_TAG
 echo ""
 read -e -p "Please enter the network mode to use (HOST if using Spark etc, else bridge should be ok): " -i "HOST" APP_NET_MODE
 echo ""
-
-
+read -e -p "Please specific an org name for use in user help screens: " -i "$CLUSTERNAME - $APP_ID" APP_ORG_NAME
+echo ""
 ALL=$(curl -s --cacert /etc/ssl/certs/ca-certificates.crt https://${REG_URL}/v2/_catalog)
 CHK=$(echo "$ALL"|grep "$APP_IMG_NAME")
 if [ "$CHK" != "" ]; then
@@ -51,6 +51,7 @@ USER_HOME="${USER_BASE}/${APP_USER}"
 USER_BIN="$USER_HOME/bin"
 JUP_DIR="${USER_HOME}/.jupyter"
 NB_DIR="${USER_HOME}/notebooks"
+
 NB_SHARED_DIR=$(cat $JUP_CONF|grep shared_notebook_dir|cut -d"=" -f2|sed "s/[\" ]//g")
 
 sudo mkdir -p $JUP_DIR
@@ -64,6 +65,23 @@ sudo chmod 750 $NB_DIR
 sudo mkdir -p $USER_BIN
 sudo chown -R $APP_USER:$IUSER $USER_BIN
 sudo chmod 750 $USER_BIN
+
+if [ "$USE_EDWIN" == "Y" ]; the
+    IP_DIR="${USER_HOME}/.ipython
+    START_IP_DIR="${IP_DIR}/profile_default/startup"
+    sudo mkdir -p $START_IP_DIR
+    sudo chown -R $APP_USER:$IUSER $IP_DIR
+    sudo chmod 750 $IP_DIR
+cat > $START_IP_DIR/00-edwin.py << EOJ
+from edwin_core import Edwin
+ip = get_ipython()
+ed = Edwin(ip)
+ip.register_magics(ed)
+EOJ
+    chown $APP_USER:$IUSER $START_IP_DIR/00-edwin.py
+    chmod 770 $START_IP_DIR/00-edwin.py
+fi
+
 
 if [ "$NB_SHARED_DIR" != "" ]; then
     echo "Shared Dir found at: $SHARED_DIR - Linking to $NB_DIR"
@@ -99,6 +117,16 @@ if [ "$APP_SSH_PORTSTR" != "" ]; then
 else
     echo "Failed to get port for ssh, exiting now"
     exit 1
+fi
+APP_SSH_HOST="${APP_USER}-${NOTE_URL_BASE}"
+CHKEDG=$(echo "$APP_SSH_PORTSTR"|grep -i "EDGE")
+if [ "$CHKEDG" == "" ]; then
+    echo "SSH is a cluster port, going to use the marathon url to get to the hostname: $APP_SSH_HOST"
+else
+    echo ""
+    echo "EDGE networking for SSH port selected, this means sometimes you wish to use an edge or proxy node for users to connect"
+    echo "Please enter that name now:"
+    read -e -p "Enter Edge Node for users to connect via SSH with: " -i "$APP_SSH_HOST" APP_SSH_HOST
 fi
 
 DEF_FILES="profile nanorc bashrc"
@@ -150,6 +178,7 @@ echo ""
 EOF
 fi
 
+MYENVS="{\"ORG_NAME\":\"$APP_ORG_NAME\"}"
 
 if [ "$FS_HADOOP_HOME" != "" ];then
     if [ ! -f "${USER_BIN}/hadoop" ]; then
@@ -163,7 +192,11 @@ if [ "$DRILL_HOME" != "" ]; then
         echo "Linking zetadrill for use in container"
         ln -s $DRILL_HOME/zetadrill $USER_BIN/zetadrill
     fi
+    if [ "$DRILL_BASE_URL" != "" ]; then
+        MYENVS="$MYENVS,{\"DRILL_BASE_URL\":\"$DRILL_BASE_URL\"}"
+    fi
 fi
+
 if [ "$SPARK_HOME" != "" ]; then
     if [ ! -f "$USER_BIN/zetaspark" ];then
         echo "Creating zetaspark shortcut"
@@ -176,12 +209,17 @@ EOS
 chmod +x ${USER_PATH}/zetaspark
     fi
     MYVOLS="[{\"containerPath\": \"/spark\", \"hostPath\": \"$SPARK_HOME\",\"mode\": \"RW\"}]"
+    MYENVS="$MYENVS,{\"SPARK_HOME\":\"/spark\"}"
+
 else
     MYVOLS="[]"
 fi
 
+if [ "$EDWIN_ORG_CODE" != "" ]; then
+    MYENVS="$MYENVS,{\"EDWIN_ORG_CODE\":\"$EDWIN_ORG_CODE\"}"
+fi
 
-echo "{\"user\": \"${APP_USER}\", \"cpu_limit\": ${APP_CPU}, \"mem_limit\": \"${APP_MEM}\", \"user_ssh_port\": ${APP_SSH_PORT}, \"user_web_port\": ${APP_WEB_PORT}, \"network_mode\": \"${APP_NET_MODE}\", \"app_image\": \"${APP_IMG}\", \"marathon_constraints\": [], \"volumes\": ${MYVOLS}, \"custom_env\": []}" >> $USER_LIST
+echo "{\"user\": \"${APP_USER}\", \"cpu_limit\": ${APP_CPU}, \"mem_limit\": \"${APP_MEM}\", \"user_ssh_host\": \"${APP_SSH_HOST}\", \"user_ssh_port\": ${APP_SSH_PORT}, \"user_web_port\": ${APP_WEB_PORT}, \"network_mode\": \"${APP_NET_MODE}\", \"app_image\": \"${APP_IMG}\", \"marathon_constraints\": [], \"volumes\": ${MYVOLS}, \"custom_env\": $MYENVS}" >> $USER_LIST
 
 #  # { "user": "username", "cpu_limit": "1", "mem_limit": "2G", "user_ssh_port": 10500, "user_web_port:" 10400, "network_mode": "BRIDGE", "app_image": "$APP_IMG", "marathon_constraints": []}
 

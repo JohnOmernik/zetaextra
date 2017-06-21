@@ -139,6 +139,7 @@ tsd.http.cachedir = /tmp/opentsdb
 
 # Enable Chunked request to HTTP API
 tsd.http.request.enable_chunked = true
+tsd.http.request.max_chunk = 1048576
 # --------- CORE ----------
 # Whether or not to automatically create UIDs for new metric types, default
 # is False
