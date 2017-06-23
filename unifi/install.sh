@@ -51,7 +51,10 @@ cat > $APP_MAR_FILE << EOL
   "labels": {
    "CONTAINERIZER":"Docker"
   },
-  "env": {"TZ": "America/Chicago"},
+  "env": {
+     "TZ": "America/Chicago",
+     "JVM_MAX_THREAD_STACK_SIZE": "1280k"
+  },
   "container": {
     "type": "DOCKER",
     "docker": {
