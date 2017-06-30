@@ -176,7 +176,7 @@ EOB
 chmod +x $APP_BUILD_DIR/build.sh
 
 cat > $APP_BUILD_DIR/Dockerfile << EOD
-FROM $ZETA_DOCKER_REG_URL/anaconda3:4.3.1
+FROM dockerregv2-shared.marathon.slave.mesos:5005/anaconda3:4.4.0
 
 WORKDIR /app
 
@@ -205,7 +205,7 @@ RUN conda config --system --add channels conda-forge
 
 RUN conda install --quiet --yes 'notebook=5.0.*' 'jupyterhub=0.7.2' 'jupyterlab=0.18.*'  && conda clean -tipsy
 
-RUN conda install --yes mpld3 request-toolbelt findspark setuptools qgrid ipywidgets && python -c "import qgrid; qgrid.nbinstall(overwrite=True)" && conda clean -tipsy
+RUN conda install --yes mpld3 requests-toolbelt findspark setuptools qgrid ipywidgets && python -c "import qgrid; qgrid.nbinstall(overwrite=True)" && conda clean -tipsy
 
 RUN echo "PATH=$PATH:/opt/conda/bin" >> /etc/environmennt && git clone https://github.com/johnomernik/edwin && pwd && cd edwin && python3 setup.py install
 

@@ -1,0 +1,4 @@
+#!/bin/bash
+
+DEF_APP_VERS="unifivideo-3.7.1.vers"
+REC_DIR="apps"
