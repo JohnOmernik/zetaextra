@@ -66,20 +66,20 @@ sudo mkdir -p $USER_BIN
 sudo chown -R $APP_USER:$IUSER $USER_BIN
 sudo chmod 750 $USER_BIN
 
-if [ "$USE_EDWIN" == "Y" ]; the
-    IP_DIR="${USER_HOME}/.ipython
+if [ "$USE_EDWIN" == "Y" ]; then
+    IP_DIR="${USER_HOME}/.ipython"
     START_IP_DIR="${IP_DIR}/profile_default/startup"
     sudo mkdir -p $START_IP_DIR
     sudo chown -R $APP_USER:$IUSER $IP_DIR
     sudo chmod 750 $IP_DIR
-cat > $START_IP_DIR/00-edwin.py << EOJ
+sudo tee  $START_IP_DIR/00-edwin.py << EOJ
 from edwin_core import Edwin
 ip = get_ipython()
 ed = Edwin(ip)
 ip.register_magics(ed)
 EOJ
-    chown $APP_USER:$IUSER $START_IP_DIR/00-edwin.py
-    chmod 770 $START_IP_DIR/00-edwin.py
+    sudo chown $APP_USER:$IUSER $START_IP_DIR/00-edwin.py
+    sudo chmod 770 $START_IP_DIR/00-edwin.py
 fi
 
 
@@ -185,13 +185,13 @@ if [ "$FS_HADOOP_HOME" != "" ];then
     if [ ! -f "${USER_BIN}/hadoop" ]; then
         HADOOP_HOME="$FS_HADOOP_HOME"
         echo  "Linking Hadoop Client for use in Container"
-        ln -s $HADOOP_HOME/bin/hadoop ${USER_BIN}/hadoop
+        sudo ln -s $HADOOP_HOME/bin/hadoop ${USER_BIN}/hadoop
     fi
 fi
 if [ "$DRILL_HOME" != "" ]; then
     if [ ! -f "$USER_BIN/zetadrill" ]; then
         echo "Linking zetadrill for use in container"
-        ln -s $DRILL_HOME/zetadrill $USER_BIN/zetadrill
+        sudo ln -s $DRILL_HOME/zetadrill $USER_BIN/zetadrill
     fi
     if [ "$DRILL_BASE_URL" != "" ]; then
         MYENVS="$MYENVS,{\"DRILL_BASE_URL\":\"$DRILL_BASE_URL\"}"
@@ -201,13 +201,14 @@ fi
 if [ "$SPARK_HOME" != "" ]; then
     if [ ! -f "$USER_BIN/zetaspark" ];then
         echo "Creating zetaspark shortcut"
-cat > ${USER_BIN}/zetaspark << EOS
+sudo tee ${USER_BIN}/zetaspark << EOS
 #!/bin/bash
 SPARK_HOME="/spark"
 cd \$SPARK_HOME
 bin/pyspark
 EOS
-chmod +x ${USER_PATH}/zetaspark
+sudo chown $APP_USER:$IUSER ${USER_BIN}/zetaspark
+sudo chmod +x ${USER_BIN}/zetaspark
     fi
     MYVOLS="[{\"containerPath\": \"/spark\", \"hostPath\": \"$SPARK_HOME\",\"mode\": \"RW\"}]"
     MYENVS="$MYENVS,{\"SPARK_HOME\":\"/spark\"}"
