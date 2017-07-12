@@ -1,0 +1,22 @@
+#!/bin/bash
+
+APP_VER="1.0.0"
+
+APP_IMG_NAME="plexmedia"
+APP_IMG_TAG="$APP_VER"
+APP_GIT_BASE="https://github.com/plexinc"
+APP_GIT_REPO="pms-docker"
+APP_GIT="${APP_GIT_BASE}/${APP_GIT_REPO}"
+
+APP_IMG="${ZETA_DOCKER_REG_URL}/${APP_IMG_NAME}:${APP_IMG_TAG}"
+
+if [ "$BUILD" == "Y" ]; then
+    git clone ${APP_GIT}
+    cd $APP_GIT_REPO
+    sed -i "s/useradd -U/useradd -U -u 2500/g" ./Dockerfile
+    sed -i "s/tzdata /tzdata udev/g" ./Dockerfile
+
+    sudo docker build -t $APP_IMG .
+    sudo docker push $APP_IMG
+
+fi

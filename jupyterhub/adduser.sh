@@ -96,6 +96,7 @@ else
     sudo docker run -it --rm -v=$JUP_DIR:/root/.jupyter $APP_IMG jupyter notebook --generate-config --allow-root
     sudo cp ${JUP_DIR}/jupyter_notebook_config.py ${JUP_DIR}/jupyter_notebook_config.py.template
     sudo chown $APP_USER:$IUSER ${JUP_DIR}/jupyter_notebook_config.py
+    sudo sed -i "s/c\.NotebookApp\.iopub_data_rate_limit =.*/c.NotebookApp.iopub_data_rate_limit = 100000000/g" ${JUP_DIR}/jupyter_notebook_config.py
     sudo chown $APP_USER:$IUSER ${JUP_DIR}/jupyter_notebook_config.py.template
 fi
 

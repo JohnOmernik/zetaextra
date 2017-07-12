@@ -8,18 +8,15 @@ echo "The next step will walk through instance defaults for ${APP_ID}"
 echo ""
 read -e -p "Please enter the CPU shares to use with $APP_NAME: " -i "1.0" APP_CPU
 echo ""
-read -e -p "Please enter the Marathon Memory limit to use with $APP_NAME: " -i "1024" APP_MEM
+read -e -p "Please enter the Marathon Memory limit to use with $APP_NAME: " -i "2048" APP_MEM
 echo ""
 read -e -p "How many instances of $APP_NAME do you wish to run: " -i "1" APP_CNT
 echo ""
+read -e -p "Please enter your plex claim token provided at https://www.plex.tv/claim: " APP_PLEX_CLAIM
+echo ""
 
-
-PORTS="7448 7445 7446 7447 7080 6666"
-
-SRV="/home/zetaadm/homecluster/zetago/conf/firewall/services.conf"
-
-
-PORTS="7448 7445 7446 7447 7080 6666"
+PORTS="32400 3005 8324 32469 1900 32410 32412 32413 32414"
+SRV="/home/$IUSER/homecluster/zetago/conf/firewall/services.conf"
 
 for P in $PORTS; do
     CHK=$(grep ":$P:" $SRV)
@@ -42,51 +39,41 @@ done
 APP_MAR_FILE="${APP_HOME}/marathon.json"
 
 APP_DATA_DIR="$APP_HOME/data"
-APP_LOG_DIR="$APP_HOME/log"
-APP_VIDEO_DIR="$APP_HOME/video"
+APP_CONFIG_DIR="$APP_HOME/config"
+APP_TRANSCODE_DIR="$APP_HOME/transcode"
 
-@go.log INFO "Adding Video Volume"
-VOL="${APP_DIR}.${APP_ROLE}.${APP_ID}.video"
-fs_mkvol "RETCODE" "$APP_VIDEO_DIR" "$VOL" "775"
+@go.log INFO "Adding Transcode Volume"
+VOL="${APP_DIR}.${APP_ROLE}.${APP_ID}.transcode"
+fs_mkvol "RETCODE" "$APP_TRANSCODE_DIR" "$VOL" "775"
 
 
 @go.log INFO "Adding Data Volume"
 VOL="${APP_DIR}.${APP_ROLE}.${APP_ID}.data"
 fs_mkvol "RETCODE" "$APP_DATA_DIR" "$VOL" "775"
 
-mkdir -p $APP_LOG_DIR
+@go.log INFO "Adding Config Volume"
+VOL="${APP_DIR}.${APP_ROLE}.${APP_ID}.config"
+fs_mkvol "RETCODE" "$APP_CONFIG_DIR" "$VOL" "775"
+
 
 APP_ENV_FILE="$CLUSTERMOUNT/zeta/kstore/env/env_${APP_ROLE}/${APP_NAME}_${APP_ID}.sh"
 
-APP_API_URL="https://${APP_ID}-${APP_ROLE}.marathon.slave.mesos:7448"
 
 sudo chown -R $IUSER:$IUSER $APP_DATA_DIR
-sudo chown -R $IUSER:$IUSER $APP_LOG_DIR
-sudo chown -R $IUSER:$IUSER $APP_VIDEO_DIR
+sudo chown -R $IUSER:$IUSER $APP_CONFIG_DIR
+sudo chown -R $IUSER:$IUSER $APP_TRANSCODE_DIR
 
 sudo chmod 770 $APP_DATA_DIR
-sudo chmod 770 $APP_LOG_DIR
-sudo chmod 770 $APP_VIDEO_DIR
-
-cat > ${APP_DATA_DIR}/system.properties << EOP
-# set at install on zeta
-app.session.timeout=240
-ems.livews.port=7445
-ems.livewss.port=7446
-is_default=false
-app.http.port = 7080
-app.https.port = 7448
-ems.liveflv.port = 6666
-#ems.rtmp.port = 1935
-ems.rtsp.port = 7447
-EOP
-
+sudo chmod 770 $APP_CONFIG_DIR
+sudo chmod 770 $APP_TRANSCODE_DIR
 
 
 cat > $APP_ENV_FILE << EOL1
 #!/bin/bash
 export ZETA_${APP_NAME}_${APP_ID}_PORT="8443"
 EOL1
+
+
 
 cat > $APP_MAR_FILE << EOL
 {
@@ -99,31 +86,24 @@ cat > $APP_MAR_FILE << EOL
   },
   "env": {
      "TZ": "America/Chicago",
-     "JVM_MAX_THREAD_STACK_SIZE": "1280k",
-     "PUID": "2500",
-     "PGUD": "2500",
-     "DEBUG": "1"
+     "PLEX_CLAIM": "$APP_PLEX_CLAIM"
   },
   "container": {
     "type": "DOCKER",
     "docker": {
       "image": "${APP_IMG}",
-      "network": "HOST",
-      "parameters": [
-                { "key": "cap-add", "value": "SYS_ADMIN" },
-                { "key": "cap-add", "value": "DAC_READ_SEARCH" },
-                { "key": "security-opt", "value": "apparmor:unconfined" }
-            ]
+      "network": "HOST"
     },
     "volumes": [
-      { "containerPath": "/var/lib/unifi-video", "hostPath": "${APP_DATA_DIR}", "mode": "RW" },
-      { "containerPath": "/usr/lib/unifi-video/data/videos", "hostPath": "${APP_VIDEO_DIR}", "mode": "RW" },
-      { "containerPath": "/var/log/unifi-video", "hostPath": "${APP_LOG_DIR}", "mode":"RW"}
+      { "containerPath": "/data", "hostPath": "${APP_DATA_DIR}", "mode": "RW" },
+      { "containerPath": "/transcode", "hostPath": "${APP_TRANSCODE_DIR}", "mode": "RW" },
+      { "containerPath": "/config", "hostPath": "${APP_CONFIG_DIR}", "mode":"RW"}
     ]
 
   }
 }
 EOL
+
 
 
 ##########
