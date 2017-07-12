@@ -437,6 +437,7 @@ cat > $APP_MAR_FILE << EOL
 }
 EOL
 
+
 @go.log WARN "Running $APP_HOME/adduser.sh - Please add user $APP_ADMIN_USER"
 $APP_HOME/adduser.sh
 
@@ -449,5 +450,8 @@ echo "To start please run: "
 echo ""
 echo "$ ./zeta package start ${APP_HOME}/$APP_ID.conf"
 echo ""
-
+echo "Before you start though - You want to build the jupyter notebook at: $APP_HOME/Dockerbuild/build.sh"
+echo ""
+echo "Once that's done you want to run $APP_HOME/adduser.sh - To add $APP_ADMIN_USER"
+echo ""
 
