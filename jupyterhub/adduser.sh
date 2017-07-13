@@ -63,7 +63,7 @@ if [ "$NB_FULL" == "Y" ]; then
 sudo tee $JUP_DIR/custom/custom.css << EOC
 .container { width:95% !important; }
 EOC
-
+fi 
 sudo chown -R $APP_USER:$IUSER $JUP_DIR
 sudo chmod 750 $JUP_DIR
 
