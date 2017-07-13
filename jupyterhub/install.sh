@@ -18,6 +18,8 @@ echo "If you would like to specify an Edwin Org Code Location, please do so now"
 echo "This is optional, if you do not specify it, it will not change things, edwin org provides a way to share information amongst teams"
 read -e -p "Please provide a path to edwin_org's code directory: " -i "" EDWIN_ORG_CODE
 echo ""
+read -e -p "Do you wish to blank out ENV Proxies so users can't use them? (Recommeded especially when there are passwords)(Y/N): " -i "Y" BLANK_PROXYS
+echo ""
 @go.log WARN "Obtaining ports for Jupyter Hub itself"
 
 PORTSTR="CLUSTER:tcp:22080:${APP_ROLE}:${APP_ID}:Hub Port for $APP_NAME"
@@ -133,6 +135,7 @@ cat > $APP_HOME/adduser.sh << EOA
 CLUSTERNAME="$CLUSTERNAME"
 CLUSTERMOUNT="$CLUSTERMOUNT"
 APP_ROLE="$APP_ROLE"
+BLANK_PROXYS="$BLANK_PROXYS"
 IUSER="$IUSER"
 APP_ID="$APP_ID"
 USER_BASE="$CLUSTERMOUNT/user"

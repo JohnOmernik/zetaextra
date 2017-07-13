@@ -31,6 +31,8 @@ read -e -p "Please enter the network mode to use (HOST if using Spark etc, else 
 echo ""
 read -e -p "Please specific an org name for use in user help screens: " -i "$CLUSTERNAME - $APP_ID" APP_ORG_NAME
 echo ""
+read -e -p "Do you wish to set the notebook panel to be 95% of the screen? (Recommended esp for large screens)(Y/N): " -i "Y" NB_FULL
+echo ""
 ALL=$(curl -s --cacert /etc/ssl/certs/ca-certificates.crt https://${REG_URL}/v2/_catalog)
 CHK=$(echo "$ALL"|grep "$APP_IMG_NAME")
 if [ "$CHK" != "" ]; then
@@ -55,6 +57,13 @@ NB_DIR="${USER_HOME}/notebooks"
 NB_SHARED_DIR=$(cat $JUP_CONF|grep shared_notebook_dir|cut -d"=" -f2|sed "s/[\" ]//g")
 
 sudo mkdir -p $JUP_DIR
+
+if [ "$NB_FULL" == "Y" ]; then
+    sudo mkdir $JUP_DIR/custom
+sudo tee $JUP_DIR/custom/custom.css << EOC
+.container { width:95% !important; }
+EOC
+
 sudo chown -R $APP_USER:$IUSER $JUP_DIR
 sudo chmod 750 $JUP_DIR
 
@@ -101,7 +110,7 @@ else
 fi
 
 
-echo "Getting Web Port"
+echo "Getting Web Port - there is no need to be EDGE here - If you want to expose through EDGE, then Jupyterhub should have been installed with EDGE"
 APP_WEB_PORTSTR=$($ZETAGO/zeta network requestport -p=10400 -t="tcp" -r="${APP_ROLE}" -i="${APP_ID}" -c="Web port for $APP_USER Notebook"|grep PORTRESULT|cut -d"#" -f2)
 
 if [ "$APP_WEB_PORTSTR" != "" ]; then
@@ -111,7 +120,7 @@ else
     exit 1
 fi
 echo ""
-echo "Getting SSH Port"
+echo "Getting SSH Port - EDGE may be good here"
 APP_SSH_PORTSTR=$($ZETAGO/zeta network requestport -p=10500 -t="tcp" -r="${APP_ROLE}" -i="${APP_ID}" -c="SSH port for $APP_USER Notebook"|grep PORTRESULT|cut -d"#" -f2)
 if [ "$APP_SSH_PORTSTR" != "" ]; then
     APP_SSH_PORT=$(echo "$APP_SSH_PORTSTR"|cut -d":" -f3)
@@ -123,11 +132,13 @@ APP_SSH_HOST="${APP_USER}-${NOTE_URL_BASE}"
 CHKEDG=$(echo "$APP_SSH_PORTSTR"|grep -i "EDGE")
 if [ "$CHKEDG" == "" ]; then
     echo "SSH is a cluster port, going to use the marathon url to get to the hostname: $APP_SSH_HOST"
+    SSH_EDGE=""
 else
     echo ""
     echo "EDGE networking for SSH port selected, this means sometimes you wish to use an edge or proxy node for users to connect"
     echo "Please enter that name now:"
     read -e -p "Enter Edge Node for users to connect via SSH with: " -i "$APP_SSH_HOST" APP_SSH_HOST
+    SSH_EDGE="EDGE"
 fi
 
 DEF_FILES="profile nanorc bashrc"
@@ -218,10 +229,13 @@ else
 fi
 
 if [ "$EDWIN_ORG_CODE" != "" ]; then
-    MYENVS="$MYENVS,{\"EDWIN_ORG_CODE\":\"$EDWIN_ORG_CODE\"}"
+    MYENVS="$MYENVS,{\"EDWIN_ORG\":\"$EDWIN_ORG_CODE\"}"
 fi
 
-echo "{\"user\": \"${APP_USER}\", \"cpu_limit\": ${APP_CPU}, \"mem_limit\": \"${APP_MEM}\", \"user_ssh_host\": \"${APP_SSH_HOST}\", \"user_ssh_port\": ${APP_SSH_PORT}, \"user_web_port\": ${APP_WEB_PORT}, \"network_mode\": \"${APP_NET_MODE}\", \"app_image\": \"${APP_IMG}\", \"marathon_constraints\": [], \"volumes\": ${MYVOLS}, \"custom_env\": [$MYENVS]}" >> $USER_LIST
+if [ "$BLANK_PROXYS" == "Y" ]; then
+    MYENVS="$MYENVS,{\"http_proxy\":\"\"},{\"https_proxy\":\"\"},{\"HTTP_PROXY\":\"\"},{\"HTTPS_PROXY\":\"\"}"
+fi
+echo "{\"user\": \"${APP_USER}\", \"cpu_limit\": ${APP_CPU}, \"mem_limit\": \"${APP_MEM}\", \"user_ssh_hagroup\": \"$SSH_EDGE\", \"user_ssh_host\": \"${APP_SSH_HOST}\", \"user_ssh_port\": ${APP_SSH_PORT}, \"user_web_port\": ${APP_WEB_PORT}, \"network_mode\": \"${APP_NET_MODE}\", \"app_image\": \"${APP_IMG}\", \"marathon_constraints\": [], \"volumes\": ${MYVOLS}, \"custom_env\": [$MYENVS]}" >> $USER_LIST
 
 #  # { "user": "username", "cpu_limit": "1", "mem_limit": "2G", "user_ssh_port": 10500, "user_web_port:" 10400, "network_mode": "BRIDGE", "app_image": "$APP_IMG", "marathon_constraints": []}
 
