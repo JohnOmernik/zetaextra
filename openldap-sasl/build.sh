@@ -3,14 +3,19 @@
 checkdocker
 check4dockerimage "${APP_IMG_NAME}" BUILD
 
+
+
+
 if [ "$BUILD" == "Y" ]; then
     rm -rf $BUILD_TMP
     mkdir -p $BUILD_TMP
+
+    cp $APP_PKG_BASE/saslauthd $BUILD_TMP/
     cd $BUILD_TMP
 
     # Since BUILD is now "Y" The vers file actually makes the dockerfile
     . ${MYDIR}/${APP_PKG_BASE}/${APP_VERS_FILE}
-
+    cp ../../saslauthd ./
     sudo docker build -t $APP_IMG .
     sudo docker push $APP_IMG
 
