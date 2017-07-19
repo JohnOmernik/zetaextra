@@ -35,9 +35,9 @@ if [ "$BUILD" == "Y" ]; then
     sed -i "s/useradd -r -g openldap/useradd -u 2500 -g openldap/" ./Dockerfile
     sed -i "s/openssl/openssl sasl2-bin nano/" ./Dockerfile
     sed -i "/ADD environment/a RUN sed -i \"s/START=no/START=yes/g\" /etc/default/saslauthd" ./Dockerfile
-    sed -i "/ADD environment/a RUN sed -i \"s/MECHANISMS=pam/MECHANISMS=ldap/g\" /etc/default/saslauthd" ./Dockerfile
+    sed -i "/ADD environment/a RUN sed -i \"s/MECHANISMS=\\"pam\\"/MECHANISMS=\\"ldap\\"/g\" /etc/default/saslauthd" ./Dockerfile
     sed -i "/ADD environment/a RUN mkdir -p /etc/sasld && touch /etc/sasld/saslauth.conf" ./Dockerfile
-    sed -i "/ADD environment/a RUN sed -i \"s@OPTIONS=\\\"@OPTIONS=\\\"-O /etc/sasld/saslauth.conf @g\" /etc/default/saslauthd" ./Dockerfile
+    sed -i "/ADD environment/a RUN sed -i -r \"s@^OPTIONS=\\"@OPTIONS=\\"-O /etc/sasld/saslauth.conf @g\" /etc/default/saslauthd" ./Dockerfile
     sed -i "/ADD environment/a RUN usermod -a -G sasl openldap" ./Dockerfile
 
 fi
