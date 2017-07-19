@@ -38,6 +38,6 @@ if [ "$BUILD" == "Y" ]; then
     sed -i "/ADD environment/a RUN mkdir -p /etc/sasld && touch /etc/sasld/saslauth.conf" ./Dockerfile
     sed -i "/ADD environment/a ADD saslauthd /etc/default" ./Dockerfile
     sed -i "/ADD environment/a RUN mkdir -p /usr/lib/sasl2 && echo \"pwcheck_method: saslauthd\" > /usr/lib/sasl2/slapd.conf && echo \"saslauthd_path: /var/run/saslauthd/mux\" >> /usr/lib/sasl2/slapd.conf" ./Dockerfile
-    sed -i "/ADD environment/a sed -i \"s/set -o pipefail/a /etc/init.d/saslauthd start\"" ./Dockerfile
+    sed -i "/ADD environment/a sed -i \"s/set -o pipefail/a /etc/init.d/saslauthd start\" /container/service/slapd/startup.sh" ./Dockerfile
 
 fi
