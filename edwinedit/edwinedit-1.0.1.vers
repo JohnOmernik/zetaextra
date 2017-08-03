@@ -74,6 +74,11 @@ COPY uwsgi.ini /etc/uwsgi/uwsgi.ini
 
 COPY uwsgi_app.ini /app/edwinedit/uwsgi.ini
 
+RUN echo "auth    required     pam_listfile.so onerr=fail item=user sense=allow file=/etc/nginx/certs/userauth" > /etc/pam.d/nginx
+RUN echo "@include common-auth" >> /etc/pam.d/nginx
+RUN echo "@include common-account" >> /etc/pam.d/nginx
+
+
 WORKDIR /app/edwinedit
 
 CMD ["/usr/bin/supervisord"]
