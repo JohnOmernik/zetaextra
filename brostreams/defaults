@@ -1,0 +1,4 @@
+#!/bin/bash
+
+DEF_APP_VERS="brostreams-2.5.1.vers"
+REC_DIR="zeta"
