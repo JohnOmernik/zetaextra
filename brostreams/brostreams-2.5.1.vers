@@ -13,7 +13,8 @@ APP_URL_FILE="${APP_INST_DIR}.tar.gz"
 
 APP_URL="${APP_URL_BASE}${APP_URL_FILE}"
 
-REQ_APP_IMG_NAME="buildbase"
+REQ_APP_IMG_NAME="maprkafkacat"
+REQ_APP_IMG_TAG="1.0.0"
 
 if [ "$BUILD" == "Y" ]; then
 
@@ -26,17 +27,17 @@ command=/opt/bro/bin/broctl deploy
 EOS
 
 cat > ./Dockerfile << EOF
-FROM ${ZETA_DOCKER_REG_URL}/${REQ_APP_IMG_NAME}
+FROM ${ZETA_DOCKER_REG_URL}/${REQ_APP_IMG_NAME}:${REQ_APP_IMG_TAG}
 
 # Install directory
 ENV PREFIX /opt/bro
 # Path should include prefix
-ENV PATH /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PREFIX/bin
+ENV PATH /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:\$PREFIX/bin
 
 WORKDIR /root
 
 RUN apt-get update && \
-    apt-get install -y syslinux clang python3-dev libyajl-dev git libevent-pthreads-2.0-5 openjdk-8-jre netcat syslinux-utils nfs-common libsasl2-dev liblz4-dev libsnappy1v5 libsnappy-dev liblzo2-2 liblzo2-dev build-essential cmake make gcc g++ flex bison libpcap-dev libgeoip-dev libssl-dev python-dev zlib1g-dev libmagic-dev swig2.0 ca-certificates supervisor wget --no-install-recommends && \
+    apt-get install -y clang cmake make gcc g++ flex bison libpcap-dev libgeoip-dev libmagic-dev swig2.0 ca-certificates supervisor --no-install-recommends && \
     wget --no-check-certificate $APP_URL && \
     tar -xzf $APP_URL_FILE && \
     rm -rf ${APP_URL_FILE}
@@ -44,55 +45,14 @@ RUN apt-get update && \
 RUN cd ${APP_INST_DIR} && \
     ./configure --prefix=\$PREFIX && \
     make && \
-    make install
+    make install && cd .. && rm -rf ${APP_INST_DIR}
 
-#ENV LIBVER=0.9.5
-
-#RUN wget https://github.com/edenhill/librdkafka/archive/v\$LIBVER.tar.gz && tar zxf v\$LIBVER.tar.gz && cd librdkafka-\$LIBVER && ./configure && make && make install && ldconfig && cd .. && rm -rf librdkafka-\$LIBVER && rm v\$LIBVER.tar.gz
-
-
-RUN wget http://archive.mapr.com/releases/v5.2.1/ubuntu/mapr-client-5.2.1.42646.GA-1.amd64.deb && dpkg -i mapr-client-5.2.1.42646.GA-1.amd64.deb && rm mapr-client-5.2.1.42646.GA-1.amd64.deb
-RUN wget http://archive.mapr.com/releases/MEP/MEP-3.0/ubuntu/mapr-librdkafka_0.9.1.201703301726_all.deb && dpkg -i mapr-librdkafka_0.9.1.201703301726_all.deb && rm mapr-librdkafka_0.9.1.201703301726_all.deb
-
-
-ENV INCLUDE=/opt/mapr
-
-RUN cd /root/${APP_INST_DIR}/aux/plugins/kafka/cmake && sed -i "s/ROT_DIR/ROOT_DIR/g" FindLibRDKafka.cmake && cat FindLibRDKafka.cmake
-RUN ln -s /opt/mapr/lib/librdkafka.so /opt/mapr/lib/librdkafka++.so
-RUN ln -s /opt/mapr/include/librdkafka/rdkafka.h /opt/mapr/include/librdkafka/rdkafkacpp.h
-
-#RUN cd /root/${APP_INST_DIR}/aux/plugins/kafka/cmake && sed -i "s@HINTS \\\${LibRDKafka_ROOT_DIR}/include@HINTS \\\${LibRDKafka_ROOT_DIR}/include/librdkafka@g" FindLibRDKafka.cmake  && cat FindLibRDKafka.cmake
-RUN cd /root/${APP_INST_DIR}/aux/plugins/kafka/cmake && sed -i "s/rdkafkacpp.h/rdkafka.h/g" FindLibRDKafka.cmake  && cat FindLibRDKafka.cmake
-RUN cd /root/${APP_INST_DIR}/aux/plugins/kafka/cmake && sed -i "s/rdkafka++/rdkafka/g" FindLibRDKafka.cmake  && cat FindLibRDKafka.cmake
-
-RUN echo "===> Compiling kafka plugin..." \
-  && cd /root/${APP_INST_DIR}/aux/plugins/kafka \
-  && CC=clang ./configure --bro-dist=/root/${APP_INST_DIR} \
-  && make \
-  && make install
-
-
-#  && CC=clang ./configure --with-librdkafka=/opt/mapr --bro-dist=/root/${APP_INST_DIR} \
-
-
-#RUN cd /root && \
-#    rm -rf ${APP_INST_DIR} && \
-#    chmod u+s \$PREFIX/bin/bro ; \
-#    chmod u+s \$PREFIX/bin/broctl ; \
-#    chmod u+s \$PREFIX/bin/capstats ; \
-#    apt-get purge -y build-essential cmake make gcc g++ flex bison zlib1g-dev python-dev zlib1g-dev libmagic-dev swig2.0 && \
-#    apt-get autoremove -y && \
-#    apt-get clean && \
-#    apt-get purge && \
-#    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-
-
+WORKDIR /opt/bro
 
 ADD supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 VOLUME  /opt/bro/logs /opt/bro/spool /opt/bro/etc
 CMD ["/usr/bin/supervisord","-c","/etc/supervisor/supervisord.conf"]
-
 
 EOF
 
