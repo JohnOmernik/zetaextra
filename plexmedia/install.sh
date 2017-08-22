@@ -16,6 +16,12 @@ read -e -p "Please enter your plex claim token provided at https://www.plex.tv/c
 echo ""
 
 PORTS="32400 3005 8324 32469 1900 32410 32412 32413 32414"
+
+MYGO="$_GO_SCRIPT"
+
+GO_ROOT=$(echo "$MYGO"|sed -r "s@/zeta$@@g")
+SRV="$GO_ROOT/conf/firewall/services.conf"
+
 SRV="/home/$IUSER/homecluster/zetago/conf/firewall/services.conf"
 
 for P in $PORTS; do

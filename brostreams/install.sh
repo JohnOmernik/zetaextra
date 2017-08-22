@@ -71,7 +71,10 @@ sed -i "s/LogRotationInterval = 3600/LogRotationInterval = 0/g" $APP_CONF_DIR/br
 @go.log INFO "Setting Interface"
 sed -i "s/interface=eth0/interface=${APP_INT}/g" $APP_CONF_DIR/node.cfg
 
-MAPRCLI="/home/zetaadm/homecluster/zetago/zeta fs mapr maprcli -U=mapr"
+
+MYGO="$_GO_SCRIPT"
+
+MAPRCLI="$MYGO fs mapr maprcli -U=mapr"
 BASEDIR="$APP_HOME"
 HDFSBASE=$(echo "$APP_HOME"|sed "s@${CLUSTERMOUNT}@@g")
 

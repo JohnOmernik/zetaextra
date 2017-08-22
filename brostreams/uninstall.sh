@@ -40,7 +40,10 @@ if [ "$CONFIRM" == "Y" ]; then
 
     if [ "$DESTROY" == "1" ]; then
         . $CONF_FILE
-        MAPRCLI="/home/zetaadm/homecluster/zetago/zeta fs mapr maprcli -U=mapr"
+
+        MYGO="$_GO_SCRIPT"
+
+        MAPRCLI="$MYGO fs mapr maprcli -U=mapr"
         BASEDIR="$APP_HOME"
         HDFSBASE=$(echo "$APP_HOME"|sed "s@${CLUSTERMOUNT}@@g")
 

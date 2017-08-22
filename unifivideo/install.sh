@@ -16,7 +16,11 @@ echo ""
 
 PORTS="7448 7445 7446 7447 7080 6666"
 
-SRV="/home/zetaadm/homecluster/zetago/conf/firewall/services.conf"
+
+MYGO="$_GO_SCRIPT"
+
+GO_ROOT=$(echo "$MYGO"|sed -r "s@/zeta$@@g")
+SRV="$GO_ROOT/conf/firewall/services.conf"
 
 
 PORTS="7448 7445 7446 7447 7080 6666"
