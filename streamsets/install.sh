@@ -228,7 +228,7 @@ echo "Setting up MapR"
 $SDC_DIST/bin/streamsets setup-mapr
 
 echo "Starting Stream Sets"
-su -c "$SDC_DIST/bin/streamsets dc" zetasvcprod
+su -c "$SDC_DIST/bin/streamsets dc" $APP_USER
 EOS
 chown $IUSER:$IUSER $APP_SBIN_DIR/start.sh
 chmod +x $APP_SBIN_DIR/start.sh
