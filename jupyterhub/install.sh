@@ -20,6 +20,8 @@ read -e -p "Please provide a path to edwin_org's code directory: " -i "" EDWIN_O
 echo ""
 read -e -p "Do you wish to blank out ENV Proxies so users can't use them? (Recommeded especially when there are passwords)(Y/N): " -i "Y" BLANK_PROXYS
 echo ""
+read -e -p "Do you wish to include MapR's librdkafka in the container for streaming working? (Y/N): " -i "N" MAPR_LIBRDKAFKA
+echo ""
 @go.log WARN "Obtaining ports for Jupyter Hub itself"
 
 PORTSTR="CLUSTER:tcp:22080:${APP_ROLE}:${APP_ID}:Hub Port for $APP_NAME"
@@ -178,12 +180,35 @@ sudo docker push \$IMG
 EOB
 chmod +x $APP_BUILD_DIR/build.sh
 
+
+if [ "$MAPR_LIBRDKAFKA" == "Y" ]; then
+# Source the current version of MapR 
+. $_GO_ROOTDIR/vers/mapr/$MAPR_VERS
+
+#env|sort
+
+MAPR_CLIENT_BASE="$UBUNTU_MAPR_CLIENT_BASE"
+MAPR_CLIENT_FILE="$UBUNTU_MAPR_CLIENT_FILE"
+MAPR_LIBRDKAFKA_BASE="$UBUNTU_MAPR_MEP_BASE"
+MAPR_LIBRDKAFKA_FILE="$UBUNTU_MAPR_LIBRDKAFKA_FILE"
+
+DOCKER_STREAM="ENV C_INCLUDE_PATH=/opt/mapr/include"$'\n'
+
+DOCKER_STREAM="${DOCKER_STREAM}ENV LIBRARY_PATH=/opt/mapr/lib"$'\n'
+DOCKER_STREAM="${DOCKER_STREAM}ENV JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64"$'\n'
+DOCKER_STREAM="${DOCKER_STREAM}ENV LD_LIBRARY_PATH=/opt/mapr/lib:\$JAVA_HOME/jre/lib/amd64/server"$'\n'
+DOCKER_STREAM="${DOCKER_STREAM}RUN wget ${MAPR_CLIENT_BASE}/${MAPR_CLIENT_FILE} && wget ${MAPR_LIBRDKAFKA_BASE}/${MAPR_LIBRDKAFKA_FILE} && dpkg -i ${MAPR_CLIENT_FILE} && dpkg -i ${MAPR_LIBRDKAFKA_FILE} && rm ${MAPR_CLIENT_FILE} && rm ${MAPR_LIBRDKAFKA_FILE} && ldconfig && git clone https://github.com/confluentinc/confluent-kafka-python && cd confluent-kafka-python && /opt/conda/bin/python3 setup.py install && cd .. && rm -rf confluent-kafka-python && rm -rf /opt/mapr "$'\n'
+else
+    DOCKER_STREAM=""
+fi
+
+
 cat > $APP_BUILD_DIR/Dockerfile << EOD
 FROM dockerregv2-shared.marathon.slave.mesos:5005/anaconda3:4.4.0
 
 WORKDIR /app
 
-RUN apt-get update && apt-get upgrade -y && apt-get install -y pwgen openssh-server gcc pass libnss3 git curl && apt-get clean && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get upgrade -y && apt-get install -y syslinux syslinux-utils pwgen openssh-server gcc pass libnss3 git curl && apt-get clean && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
 
 RUN echo "root:\$(pwgen -s 16 1)" | chpasswd
 
@@ -202,15 +227,17 @@ RUN sed -i "s/use_authtok //g" /etc/pam.d/common-password
 
 RUN conda update conda
 
-RUN conda install --quiet --yes memory_profiler pandas requests
-
 RUN conda config --system --add channels conda-forge
+
+RUN conda install --quiet --yes memory_profiler pandas requests python-snappy python-lzo brotli pytest
 
 RUN conda install --quiet --yes 'notebook=5.0.*' 'jupyterhub=0.7.2' 'jupyterlab=0.18.*'  && conda clean -tipsy
 
 RUN conda install --yes mpld3 plotly requests-toolbelt findspark setuptools qgrid ipywidgets && jupyter nbextension enable --py --sys-prefix widgetsnbextension && python -c "import qgrid; qgrid.nbinstall(overwrite=True)" && conda clean -tipsy
 
-RUN echo "PATH=$PATH:/opt/conda/bin" >> /etc/environmennt && git clone https://github.com/johnomernik/edwin && pwd && cd edwin && python3 setup.py install
+RUN echo "PATH=\$PATH:/opt/conda/bin" >> /etc/environmennt && git clone https://github.com/johnomernik/edwin && pwd && cd edwin && python3 setup.py install
+
+$DOCKER_STREAM
 
 CMD ["/bin/bash"]
 

@@ -9,11 +9,17 @@ APP_IMG_TAG="$APP_VER"
 APP_IMG="${ZETA_DOCKER_REG_URL}/${APP_IMG_NAME}:${APP_IMG_TAG}"
 REQ_APP_IMG_NAME="buildbase"
 
-MAPR_CLIENT_BASE="http://package.mapr.com/releases/v5.2.1/ubuntu/"
-MAPR_CLIENT_FILE="mapr-client-5.2.1.42646.GA-1.amd64.deb"
-MAPR_LIBRDKAFKA_BASE="http://package.mapr.com/releases/MEP/MEP-3.0/ubuntu/"
-MAPR_LIBRDKAFKA_FILE="mapr-librdkafka_0.9.1.201703301726_all.deb"
 
+
+# Source the current version of MapR 
+. $_GO_ROOTDIR/vers/mapr/$MAPR_VERS
+
+#env|sort
+
+MAPR_CLIENT_BASE="$UBUNTU_MAPR_CLIENT_BASE"
+MAPR_CLIENT_FILE="$UBUNTU_MAPR_CLIENT_FILE"
+MAPR_LIBRDKAFKA_BASE="$UBUNTU_MAPR_MEP_BASE"
+MAPR_LIBRDKAFKA_FILE="$UBUNTU_MAPR_LIBRDKAFKA_FILE"
 
 
 if [ "$BUILD" == "Y" ]; then

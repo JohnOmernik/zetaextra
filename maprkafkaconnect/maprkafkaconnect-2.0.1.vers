@@ -1,0 +1,48 @@
+#!/bin/bash
+
+APP_VER="2.0.1"
+
+APP_IMG_NAME="maprkafkaconnect"
+
+APP_IMG_TAG="$APP_VER"
+APP_IMG="${ZETA_DOCKER_REG_URL}/${APP_IMG_NAME}:${APP_IMG_TAG}"
+
+REQ_APP_IMG_NAME="zetabase"
+
+
+APP_URL_CONNECT_BASE="http://package.mapr.com/releases/MEP/MEP-3.0/ubuntu"
+APP_URL_CONNECT_FILE="mapr-kafka-connect-hdfs_2.0.1.201707311355_all.deb"
+APP_CONNECT_URL="${APP_URL_CONNECT_BASE}/${APP_URL_CONNECT_FILE}"
+
+APP_URL_KAFKA_BASE="http://package.mapr.com/releases/MEP/MEP-3.0/ubuntu"
+APP_URL_KAFKA_FILE="mapr-kafka_0.9.0.201707250127_all.deb"
+APP_KAFKA_URL="${APP_URL_KAFKA_BASE}/${APP_URL_KAFKA_FILE}"
+
+
+
+if [ "$BUILD" == "Y" ]; then
+
+cat > ./Dockerfile << EOF
+FROM ${ZETA_DOCKER_REG_URL}/${REQ_APP_IMG_NAME}:latest
+
+WORKDIR /app/kafkaconnect
+
+RUN mkdir -p /opt/mapr && wget $APP_KAFKA_URL && dpkg -x $APP_URL_KAFKA_FILE ./ && mv ./opt/mapr/kafka /opt/mapr/ && rm $APP_URL_KAFKA_FILE && rm -rf ./opt && wget $APP_CONNECT_URL && dpkg -x $APP_URL_CONNECT_FILE ./ && mv ./opt/mapr/kafka-connect-hdfs /opt/mapr/ && rm $APP_URL_CONNECT_FILE && rm -rf ./opt
+
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y locales
+
+RUN sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
+    dpkg-reconfigure --frontend=noninteractive locales && \
+    update-locale LANG=en_US.UTF-8
+
+ENV LANG en_US.UTF-8
+
+
+WORKDIR /opt/mapr/kafka-connect-hdfs/kafka-connect-hdfs-2.0.1/sbin
+CMD ["/bin/bash"]
+
+EOF
+    sudo docker build -t $APP_IMG .
+    sudo docker push $APP_IMG
+
+fi
