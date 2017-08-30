@@ -221,7 +221,7 @@ EOS
 sudo chown $APP_USER:$IUSER ${USER_BIN}/zetaspark
 sudo chmod +x ${USER_BIN}/zetaspark
     fi
-    MYVOLS="[{\"containerPath\": \"/spark\", \"hostPath\": \"$SPARK_HOME\",\"mode\": \"RW\"}]"
+    MYVOLS="[{\"containerPath\": \"/spark\", \"hostPath\": \"$SPARK_HOME\",\"mode\": \"RW\"},{\"containerPath\": \"/etc/localtime\", \"hostPath\": \"/etc/localtime\", \"mode\": \"RO\"}]"
     MYENVS="$MYENVS,{\"SPARK_HOME\":\"/spark\"}"
 
 else

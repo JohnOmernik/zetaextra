@@ -460,7 +460,8 @@ cat > $APP_MAR_FILE << EOL
       { "containerPath": "/app/conf", "hostPath": "${APP_CONF_DIR}", "mode": "RW" },
       { "containerPath": "/app/data", "hostPath": "${APP_DATA_DIR}", "mode": "RW" },
       { "containerPath": "/app/logs", "hostPath": "${APP_LOG_DIR}", "mode": "RW" },
-      { "containerPath": "/app/certs", "hostPath": "${APP_CERT_LOC}", "mode": "RW" }
+      { "containerPath": "/app/certs", "hostPath": "${APP_CERT_LOC}", "mode": "RW" },
+      { "containerPath": "/etc/localtime", "hostPath": "/etc/localtime", "mode": "RO" }
     ]
 
   }
