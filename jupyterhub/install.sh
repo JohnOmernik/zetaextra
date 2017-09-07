@@ -208,7 +208,7 @@ FROM dockerregv2-shared.marathon.slave.mesos:5005/anaconda3:4.4.0
 
 WORKDIR /app
 
-RUN apt-get update && apt-get upgrade -y && apt-get install -y syslinux syslinux-utils pwgen openssh-server gcc pass libnss3 git curl && apt-get clean && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get upgrade -y && apt-get install -y syslinux nano vim syslinux-utils pwgen openssh-server gcc pass libnss3 git curl && apt-get clean && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
 
 RUN echo "root:\$(pwgen -s 16 1)" | chpasswd
 

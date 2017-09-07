@@ -1,0 +1,33 @@
+#!/bin/bash
+
+APP_VER="spark-2.2.0"
+APP_IMG_TAG="2.2.0"
+
+APP_URL_FILE="${APP_VER}-bin-without-hadoop.tgz"
+APP_URL_BASE="http://apache.claz.org/spark/${APP_VER}/"
+
+APP_TGZ="$APP_URL_FILE"
+
+APP_VER_DIR=$(echo "$APP_TGZ"|sed "s/\.tgz//g")
+
+APP_URL="${APP_URL_BASE}${APP_URL_FILE}"
+
+APP_IMG_NAME="zetaspark"
+
+APP_IMG="${ZETA_DOCKER_REG_URL}/${APP_IMG_NAME}:latest"
+
+
+
+if [ "$BUILD" == "Y" ]; then
+
+cat > ./Dockerfile << EOL
+
+FROM ${ZETA_DOCKER_REG_URL}/${REQ_APP_IMG_NAME}
+
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y python libnss3 python-numpy python-dev python-pip git curl && apt-get clean && apt-get autoremove -y
+
+RUN pip install xxhash && pip install lz4tools && pip install kafka-python && pip install requests && pip install pandas
+
+EOL
+
+fi
