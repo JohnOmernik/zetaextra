@@ -16,17 +16,15 @@ else
     echo "You have requested to uninstall the instance $APP_ID in role $APP_ROLE of the applicaiton $APP_NAME"
     echo "Uninstall stops the app, removes it from Marathon, and removes the ENV files for the application but leaves data/conf available"
     echo ""
-    if [ "$DESTROY" == "1" ]; then
-        echo ""
-        echo "********************************"
-        echo ""
-        echo "You have also selected to destroy and delete all data for this app in addition to uninstalling from the ENV variables and marathon" 
-        echo ""
-        echo "This is irreversible"
-        echo ""
-        echo "********************************"
-        echo ""
-    fi
+    echo ""
+    echo "********************************"
+    echo ""
+    echo "You have also selected to destroy and delete all data for this app in addition to uninstalling from the ENV variables and marathon" 
+    echo ""
+    echo "This is irreversible"
+    echo ""
+    echo "********************************"
+    echo ""
 
     read -e -p "Are you sure you wish to go on with this action? " -i "N" CONFIRM
 fi
@@ -40,15 +38,18 @@ if [ "$CONFIRM" == "Y" ]; then
     @go.log INFO "Removing ENV file at $APP_ENV_FILE"
     rm $APP_ENV_FILE
 
+    @go.log INFO "Removeing ports for $APP_ID"
+    APP_STR="${APP_ROLE}:${APP_ID}"
+    sed -i "/${APP_STR}/d" ${SERVICES_CONF}
+
+
     @go.log INFO "Destroying $APP_MAR_HIST_ID in marathon"
     ./zeta cluster marathon destroy $APP_MAR_HIST_ID $MARATHON_SUBMIT 1
     @go.log INFO "Destroying $APP_MAR_SHUF_ID in marathon"
     ./zeta cluster marathon destroy $APP_MAR_SHUF_ID $MARATHON_SUBMIT 1
-    if [ "$DESTROY" == "1" ]; then
-       @go.log WARN "Also removing all data for app"
-       @go.log WARN "If volumes exist, we need to handle those"
-       sudo rm -rf $APP_HOME
-   fi
+    @go.log WARN "Also removing all data for app"
+    @go.log WARN "If volumes exist, we need to handle those"
+   sudo rm -rf $APP_HOME
 else
     @go.log WARN "User canceled uninstall"
 fi

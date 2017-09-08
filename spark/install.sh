@@ -10,7 +10,7 @@ sudo chown -R $IUSER:zeta${APP_ROLE}zeta $APP_HOME/sparklogs
 
 @go.log INFO "Creating Default Conf Directory"
 APP_CONF_DIR="$APP_HOME/conf"
-sudo cp -R $APP_HOME/$APP_VER_DIR/conf/* $APP_CONF_DIR/
+sudo mv $APP_HOME/$APP_VER_DIR/conf $APP_HOME/
 sudo chown -R $IUSER:zeta${APP_ROLE}data $APP_CONF_DIR
 sudo chmod -R 775 $APP_CONF_DIR
 
@@ -100,22 +100,44 @@ APP_SHUF_MEM="1280"
 APP_HIST_CNT="1"
 
 
-echo "Which base image should we use for spark? (anaspark2, anaspark3, zetaspark): " -i "anaspark3" SPARK_BASE
+read -e -p  "Which base image should we use for spark? (anaspark2, anaspark3, zetaspark): " -i "anaspark3" SPARK_BASE
 
 if [ "$SPARK_BASE" == "anaspark3" ]; then
-    APP_PYSPARK="export PYSPARK_PYTHON=\"/opt/conda/bin/python3\""
-    APP_IMG="${ZETA_DOCKER_REG_URL}/${SPARK_BASE}:latest"
+    APP_PYSPARK="/opt/conda/bin/python3"
+    APP_EX_PYSPARK="export PYSPARK_PYTHON=\"${APP_PYSPARK}\""
 elif [ "$SPARK_BASE" == "anaspark2" ]; then
-    APP_IMG="${ZETA_DOCKER_REG_URL}/${SPARK_BASE}:latest"
-    APP_PYSPARK="export PYSPARK_PYTHON=\"/opt/conda/bin/python2\""
+    APP_PYSPARK="/opt/conda/bin/python2"
+    APP_EX_PYSPARK="export PYSPARK_PYTHON=\"${APP_PYSPARK}\""
 elif [ "$SPARK_BASE" == "zetaspark" ]; then
-    APP_IMG="${ZETA_DOCKER_REG_URL}/${SPARK_BASE}:latest"
     APP_PYSPARK=""
+    APP_EX_PYSPARK=""
 else
     echo "The image you selected is invalid: $SPARK_BASE"
     echo "Image must be: anaspark2, anaspark3, or zetaspark"
     @go.log FATAL "Cannot proceed with install without proper image"
 fi
+
+OUT=$(curl -s https://${ZETA_DOCKER_REG_URL}/v2/${SPARK_BASE}/tags/list)
+
+CHK=$(echo "$OUT"|grep "NAME_UNKNOWN")
+if [ "$CHK" != "" ]; then
+    @go.log FATAL "Image selected: $SPARK_BASE has not been built/pushed to the docker registry - Please build using ./zeta package build spark or ./zeta package build anaconda (and answer yes on building spark)"
+fi
+
+echo "Here are the tags reported by the docker registry for $SPARK_BASE: "
+echo ""
+echo "$OUT"
+echo ""
+read -e -p "Which image version should we pull for spark image: $SPARK_BASE?: " SPARK_BASE_TAG
+echo ""
+
+TAG=$(curl -s https://${ZETA_DOCKER_REG_URL}/v2/${SPARK_BASE}/manifests/${SPARK_BASE_TAG})
+CHK_TAG=$(echo "$TAG"|grep "MANIFEST_UNKNOWN")
+if [ "$CHK_TAG" != "" ]; then
+    @go.log FATAL "The Image and Tag ($SPARK_BASE:$SPARK_BASE_TAG) could not be found on the Registry - Please build and try again"
+fi
+
+APP_IMG="${ZETA_DOCKER_REG_URL}/${SPARK_BASE}:${SPARK_BASE_TAG}"
 
 echo ""
 echo "Spark Resources"
@@ -135,7 +157,6 @@ export ZETA_${APP_ID}__HISTORY_PORT="${APP_PORT}"
 EOL1
 
 
-@go.log WARN "Need to genericize FS library loading"
 MAPR_HOME="$FS_HOME"
 HADOOP_HOME="$FS_HADOOP_HOME"
 
@@ -182,7 +203,7 @@ source \$MAPR_HOME/conf/env.sh
 if [ "\$MAPR_SECURITY_STATUS" = "true" ]; then
 SPARK_SUBMIT_OPTS="\$SPARK_SUBMIT_OPTS -Dmapr_sec_enabled=true"
 fi
-$APP_PYSPARK
+$APP_EX_PYSPARK
 EOE
 
 
@@ -206,6 +227,9 @@ spark.network.timeout 15s
 
 spark.mesos.executor.docker.image $APP_IMG
 spark.mesos.executor.docker.volumes ${APP_HOME}/${APP_VER_DIR}:/spark:ro,${APP_CONF_DIR}:/spark_conf:ro,${FS_HOME}:${FS_HOME}:ro,/opt/mesosphere:/opt/mesosphere:ro,${CLUSTERMOUNT}${FS_PROVIDER_LOCAL}:${CLUSTERMOUNT}${FS_PROVIDER_LOCAL}:rw
+
+spark.executorEnv.PYSPARK_PYTHON $APP_PYSPARK
+spark.executorEnv.SPARK_CONF_DIR /spark_conf
 
 spark.home  /spark
 spark.local.dir /tmp/spark

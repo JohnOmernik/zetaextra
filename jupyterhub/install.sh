@@ -132,7 +132,11 @@ read -e -p "Please provide the Drill URL for the Home location specified above: 
 echo ""
 read -e -p "Please provide a Spark Home location. This is the full path to the spark directory under your app instace (Likely with version bin with hadoop in the directory name): " -i "$CLUSTERMOUNT/zeta/prod/spark/sparkprod/spark-2.1.1-bin-without-hadoop" APP_SPARK
 echo ""
-cat > $APP_HOME/adduser.sh << EOA
+read -e -p "Please provide the directory for SPARK_CONF_DIR. This is typically ../conf from your Spark home directory." -i "$CLUSTERMOUNT/zeta/prod/spark/sparkprod/conf" APP_SPARK_CONF
+echo ""
+
+
+cat > $APP_HOME/user_defaults.sh << EOA
 #!/bin/bash
 CLUSTERNAME="$CLUSTERNAME"
 CLUSTERMOUNT="$CLUSTERMOUNT"
@@ -153,10 +157,17 @@ FS_HADOOP_HOME="$APP_HADOOP"
 DRILL_HOME="$APP_DRILL"
 DRILL_BASE_URL="$APP_DRILL_URL"
 SPARK_HOME="$APP_SPARK"
+SPARK_CONF_DIR="$APP_SPARK_CONF"
 USE_EDWIN="$USE_EDWIN"
 EDWIN_ORG_CODE="$EDWIN_ORG_CODE"
 NOTE_URL_BASE="$NOTE_URL_BASE"
 EOA
+
+cat > $APP_HOME/adduser.sh << EOO
+#!/bin/bash
+. $APP_HOME/user_defaults.sh
+
+EOO
 
 cat ${APP_PKG_BASE}/adduser.sh >> $APP_HOME/adduser.sh
 chmod +x $APP_HOME/adduser.sh
