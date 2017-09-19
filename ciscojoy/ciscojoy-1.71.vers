@@ -1,0 +1,33 @@
+#!/bin/bash
+
+APP_VER="1.71"
+APP_IMG_NAME="ciscojoy"
+APP_IMG_TAG="$APP_VER"
+APP_IMG="${ZETA_DOCKER_REG_URL}/${APP_IMG_NAME}:${APP_IMG_TAG}"
+
+
+APP_GIT_BASE="https://github.com/cisco/"
+APP_GIT_REPO="joy"
+
+
+REQ_APP_IMG_NAME="maprkafkacat"
+REQ_APP_IMG_TAG="1.0.0"
+
+if [ "$BUILD" == "Y" ]; then
+
+
+cat > ./Dockerfile << EOF
+FROM ${ZETA_DOCKER_REG_URL}/${REQ_APP_IMG_NAME}:${REQ_APP_IMG_TAG}
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y libpcap0.8 tcpdump libpcap0.8-dev curl libcurl4-openssl-dev python-dev man-db && pip install --upgrade pip
+
+RUN git clone ${APP_GIT_BASE}${APP_GIT_REPO} && cd $APP_GIT_REPO && ./config --lib-path /usr/lib/x86_64-linux-gnu && make && make install
+
+CMD ["/bin/bash"]
+
+EOF
+
+
+fi
