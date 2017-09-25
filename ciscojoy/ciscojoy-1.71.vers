@@ -23,7 +23,9 @@ WORKDIR /app
 
 RUN apt-get update && apt-get install -y libpcap0.8 tcpdump libpcap0.8-dev curl libcurl4-openssl-dev python-dev man-db && pip install --upgrade pip
 
-RUN git clone ${APP_GIT_BASE}${APP_GIT_REPO} && cd $APP_GIT_REPO && ./config --lib-path /usr/lib/x86_64-linux-gnu && make && make install
+RUN echo "hi" && git clone ${APP_GIT_BASE}${APP_GIT_REPO} && cd $APP_GIT_REPO && sed -i "s/define COMPRESSED_OUTPUT 1/define COMPRESSED_OUTPUT 0/g" ./src/include/output.h && sed -i "/zopen/a setbuf(output, NULL);" ./src/joy.c
+
+RUN cd $APP_GIT_REPO && ./config --lib-path /usr/lib/x86_64-linux-gnu && make && make install
 
 CMD ["/bin/bash"]
 

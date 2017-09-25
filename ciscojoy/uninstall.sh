@@ -48,7 +48,7 @@ if [ "$CONFIRM" == "Y" ]; then
         HDFSBASE=$(echo "$APP_HOME"|sed "s@${CLUSTERMOUNT}@@g")
 
         @go.log WARN "Deleting Stream!"
-        $MAPRCLI stream delete -path $HDFSBASE/streams/brostreams
+        $MAPRCLI stream delete -path $HDFSBASE/streams/joystreams
         VOL="${APP_DIR}.${APP_ROLE}.${APP_ID}.streams"
         MNT="${HDFSBASE}/streams"
         fs_rmdir "RETCODE" "$MNT"
