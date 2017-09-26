@@ -210,7 +210,7 @@ aux_resource_path = /usr/local/etc/joy
 # verbosity = 0 -> silent
 # verbosity = 1 -> report a summary of each packet
 # verbosity = 2 -> report on all data of each packet
-verbosity = 1
+verbosity = 0
 
 EOO
 
