@@ -15,6 +15,10 @@ if [ "$BUILD" == "Y" ]; then
 
     sudo docker build -t $APP_IMG .
     sudo docker push $APP_IMG
+    read -e -p "Do you wish to tag ${APP_IMG_NAME}:${APP_VER} as ${APP_IMG_NAME}:latest? (Y/N): " -i "Y" TAG_LATEST
+    if [ "$TAG_LATEST" == "Y" ]; then
+        sudo docker tag $APP_IMG ${ZETA_DOCKER_REG_URL}/${APP_IMG_NAME}:latest
+    fi
 
     cd $MYDIR
     rm -rf $BUILD_TMP
