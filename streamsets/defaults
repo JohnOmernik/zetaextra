@@ -1,4 +1,4 @@
 #!/bin/bash
 
-DEF_APP_VERS="streamsets-2.6.0.1.vers"
+DEF_APP_VERS="streamsets-3.1.0.0.vers"
 REC_DIR="etl"

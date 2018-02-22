@@ -1,0 +1,50 @@
+#!/bin/bash
+
+# 1.1 - Added apt-get upgrade -y 
+# 1.2 - Added vim and nano and an option to build zetaspark
+# 1.3 - remove latest tagging in vers file
+APP_IMG_NAME="zetabasecuda"
+APP_VER="1.3"
+APP_IMG_TAG="$APP_VER"
+
+APP_IMG="${ZETA_DOCKER_REG_URL}/${APP_IMG_NAME}:${APP_IMG_TAG}"
+
+
+if [ "$BUILD" == "Y" ]; then
+
+cat > ./Dockerfile << EOL
+FROM nvidia/cuda:9.1-devel-ubuntu16.04
+
+# Add proxies based on Zeta Config
+$DOCKER_LINE
+
+# Add the IUSER and FSUSER (Typically zetaadm and mapr)
+RUN adduser --disabled-login --gecos '' --uid=${IUSER_UID} $IUSER && adduser --disabled-login --gecos '' --uid=${FSUSER_UID} $FSUSER
+
+# Set the groups for IUSER FSUSER
+RUN usermod -a -G root ${FSUSER} && usermod -a -G root ${IUSER} && usermod -a -G adm ${FSUSER} && usermod -a -G adm ${IUSER} && usermod -a -G disk ${FSUSER} && usermod -a -G disk ${IUSER}
+
+# Install basic packages
+RUN apt-get update && apt-get upgrade -y && DEBIAN_FRONTEND=noninteractive apt-get install -qq -y curl nano vim jq libpam-ldap nscd openjdk-8-jdk wget perl netcat syslinux-utils ca-certificates && apt-get clean && apt-get autoremove -y 
+
+# Update the certificate stores with zetaca (Should we allow for an option to and enterprise ca?)
+RUN rm -f /usr/local/share/ca-certificates/zetaroot.crt && update-ca-certificates -f && curl -o /usr/local/share/ca-certificates/zetaroot.crt http://zetaca-shared.marathon.slave.mesos:10443/cacert && update-ca-certificates
+
+# update container to allow LDAP users to login
+RUN echo "Name: activate mkhomedir" > /usr/share/pam-configs/my_mkhomedir && echo "Default: yes" >> /usr/share/pam-configs/my_mkhomedir && echo "Priority: 900" >> /usr/share/pam-configs/my_mkhomedir && echo "Session-Type: Additional" >> /usr/share/pam-configs/my_mkhomedir && echo "Session:" >> /usr/share/pam-configs/my_mkhomedir && echo "      required               pam_mkhomedir.so umask=0022 skel=/etc/skel"
+
+# Setup LDAP information for OpenLDAP in Zeta architecture
+RUN echo "base $LDAP_BASE" > /etc/ldap.conf && echo "uri $LDAP_URL" >> /etc/ldap.conf && echo "binddn $LDAP_RO_USER" >> /etc/ldap.conf && echo "bindpw $LDAP_RO_PASS" >> /etc/ldap.conf && echo "ldap_version 3" >> /etc/ldap.conf && echo "pam_password md5" >> /etc/ldap.conf && echo "bind_policy soft" >> /etc/ldap.conf
+
+# Finish PAM update for LDAP
+RUN DEBIAN_FRONTEND=noninteractive pam-auth-update && sed -i "s/compat/compat ldap/g" /etc/nsswitch.conf && /etc/init.d/nscd restart
+
+# Command
+CMD ["/bin/bash"]
+
+EOL
+
+
+
+fi
+

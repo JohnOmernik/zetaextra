@@ -1,0 +1,63 @@
+#!/bin/bash
+
+APP_VER="3.9.0"
+
+APP_IMG_NAME="unifivideo"
+APP_IMG_TAG="$APP_VER"
+
+APP_URL_BASE="https://dl.ubnt.com/firmwares/ufv/v${APP_VER}"
+
+APP_URL_FILE="unifi-video.Ubuntu16.04_amd64.v${APP_VER}.deb"
+APP_URL="${APP_URL_BASE}/${APP_URL_FILE}"
+
+APP_GIT_BASE="https://github.com/pducharme"
+APP_GIT_REPO="UniFi-Video-Controller"
+
+
+APP_IMG="${ZETA_DOCKER_REG_URL}/${APP_IMG_NAME}:${APP_IMG_TAG}"
+
+if [ "$BUILD" == "Y" ]; then
+    git clone ${APP_GIT_BASE}/${APP_GIT_REPO}
+    cd $APP_GIT_REPO
+    rm ./Dockerfile
+cat > ./Dockerfile << EOF
+FROM phusion/baseimage:latest
+MAINTAINER pducharme@me.com
+
+# Set correct environment variables
+ENV HOME /root
+ENV DEBIAN_FRONTEND noninteractive
+ENV LC_ALL C.UTF-8
+ENV LANG en_US.UTF-8
+ENV LANGUAGE en_US.UTF-8
+
+# Add needed patches and scripts
+ADD unifi-video.patch /unifi-video.patch
+ADD run.sh /run.sh
+
+# Run all commands
+RUN apt-get update && \
+  apt-get install -y apt-utils && \
+  apt-get upgrade -y -o Dpkg::Options::="--force-confold" && \
+  apt-get install -y wget sudo moreutils patch mongodb-server openjdk-8-jre-headless jsvc
+
+RUN echo "$APP_URL" && wget ${APP_URL} && \
+  dpkg -i ${APP_URL_FILE} && \
+  echo "JSVC_EXTRA_OPTS=\"\$JSVC_EXTRA_OPTS -Xss1280k\"" | tee -a /etc/default/unifi-video && \
+  patch -N /usr/sbin/unifi-video /unifi-video.patch && \
+  chmod 755 /run.sh && rm ${APP_URL_FILE}
+
+# Volumes
+VOLUME /var/lib/unifi-video /var/log/unifi-video
+
+# Ports
+EXPOSE 7443 7445 7446 7447 7080 6666
+
+# Run this potato
+CMD ["/run.sh"]
+
+EOF
+    sudo docker build -t $APP_IMG .
+    sudo docker push $APP_IMG
+
+fi

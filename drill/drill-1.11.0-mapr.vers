@@ -1,0 +1,11 @@
+#!/bin/bash
+
+APP_VER="drill-1.11.0"
+APP_TGZ="${APP_VER}.tgz"
+
+APP_URL_ROOT="http://package.mapr.com/releases/MEP/MEP-4.0.0/redhat/"
+APP_URL_FILE="mapr-drill-internal-1.11.0.201711161142-1.noarch.rpm"
+APP_URL="${APP_URL_ROOT}${APP_URL_FILE}"
+
+REQ_APP_IMG_NAME="buildbase"
+

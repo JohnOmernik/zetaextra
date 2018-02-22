@@ -1,0 +1,23 @@
+#!/bin/bash
+
+APP_VER="5.6.22"
+
+APP_IMG_NAME="unifi"
+APP_IMG_TAG="$APP_VER"
+
+APP_DCK_DL="ENV PKGURL=https://dl.ubnt.com/unifi/${APP_VER}/unifi_sysvinit_all.deb"
+
+APP_GIT_BASE="https://github.com/jacobalberty"
+APP_GIT_REPO="unifi-docker"
+
+
+APP_IMG="${ZETA_DOCKER_REG_URL}/${APP_IMG_NAME}:${APP_IMG_TAG}"
+
+if [ "$BUILD" == "Y" ]; then
+    git clone ${APP_GIT_BASE}/${APP_GIT_REPO}
+    cd $APP_GIT_REPO
+    sed -i -e "s~ENV PKGURL=.*$~${APP_DCK_DL}~g" ./Dockerfile
+    sudo docker build -t $APP_IMG .
+    sudo docker push $APP_IMG
+
+fi

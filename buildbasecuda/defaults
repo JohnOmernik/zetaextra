@@ -1,0 +1,4 @@
+#!/bin/bash
+
+DEF_APP_VERS="buildbasecuda_1.0.vers"
+

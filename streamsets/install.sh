@@ -244,7 +244,8 @@ cat > $APP_MAR_FILE << EOL
   "instances": 1,
   "env": {
     "MAPR_HOME": "/opt/mapr",
-    "MAPR_VERSION": "5.2.0",
+    "MAPR_VERSION": "6.0.0",
+    "MAPR_MEP_VERSION": "4",
     "SDC_RESOURCES": "/app/resources",
     "SDC_DATA": "/app/data",
     "SDC_CONF": "/app/conf",
