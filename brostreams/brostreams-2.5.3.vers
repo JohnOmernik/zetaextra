@@ -1,6 +1,6 @@
 #!/bin/bash
 
-APP_VER="2.5.1"
+APP_VER="2.5.3"
 APP_IMG_NAME="brostreams"
 APP_IMG_TAG="$APP_VER"
 APP_IMG="${ZETA_DOCKER_REG_URL}/${APP_IMG_NAME}:${APP_IMG_TAG}"

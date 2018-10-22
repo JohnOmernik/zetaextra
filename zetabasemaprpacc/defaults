@@ -1,4 +1,4 @@
 #!/bin/bash
 
 DEF_APP_VERS="zetabase_1.3.vers"
-APP_BASE="ubuntu:xenial"
+

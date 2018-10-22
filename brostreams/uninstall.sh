@@ -51,7 +51,8 @@ if [ "$CONFIRM" == "Y" ]; then
         $MAPRCLI stream delete -path $HDFSBASE/streams/brostreams
         VOL="${APP_DIR}.${APP_ROLE}.${APP_ID}.streams"
         MNT="${HDFSBASE}/streams"
-        fs_rmdir "RETCODE" "$MNT"
+        $MAPRCLI  volume remove -name ${MNT}
+#        fs_rmdir "RETCODE" "$MNT"
         echo ""
         @go.log WARN "Also removing all data for app"
         sudo rm -rf $APP_HOME

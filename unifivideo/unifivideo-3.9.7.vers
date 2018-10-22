@@ -1,0 +1,28 @@
+#!/bin/bash
+
+APP_VER="3.9.7"
+
+APP_IMG_NAME="unifivideo"
+APP_IMG_TAG="$APP_VER"
+
+APP_URL_BASE="https://dl.ubnt.com/firmwares/ufv/v${APP_VER}"
+
+APP_URL_FILE="unifi-video.Ubuntu16.04_amd64.v${APP_VER}.deb"
+APP_URL="${APP_URL_BASE}/${APP_URL_FILE}"
+
+APP_GIT_BASE="https://github.com/pducharme"
+APP_GIT_REPO="UniFi-Video-Controller"
+
+
+APP_IMG="${ZETA_DOCKER_REG_URL}/${APP_IMG_NAME}:${APP_IMG_TAG}"
+
+if [ "$BUILD" == "Y" ]; then
+    git clone ${APP_GIT_BASE}/${APP_GIT_REPO}
+    cd $APP_GIT_REPO
+
+    sed -i "s/ENV version.*/ENV version $APP_VER/g" ./Dockerfile
+
+    sudo docker build -t $APP_IMG .
+    sudo docker push $APP_IMG
+
+fi

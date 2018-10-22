@@ -7,23 +7,13 @@ APP_IMG_NAME="zetabase"
 APP_VER="1.3"
 APP_IMG_TAG="$APP_VER"
 
-read -e -p "Please enter the base image to use for zetabase: " -i "$APP_BASE" APP_BASE
-
-if [ "$APP_BASE" == "ubuntu:xenial" ]; then
-    APP_BASE="ubuntu:xenial"
-    APP_IMG="${ZETA_DOCKER_REG_URL}/${APP_IMG_NAME}:${APP_IMG_TAG}"
-else
-    read -e -p "Please provide a tag (no colons) to use in tagging this version of zetabase: " APP_BASE_TAG
-    APP_IMG=${ZETA_DOCKER_REG_URL}/${APP_IMG_NAME}:${APP_BASE_TAG}_${APP_IMG_TAG}
-fi
-
-
+APP_IMG="${ZETA_DOCKER_REG_URL}/${APP_IMG_NAME}:${APP_IMG_TAG}"
 
 
 if [ "$BUILD" == "Y" ]; then
 
 cat > ./Dockerfile << EOL
-FROM $APP_BASE
+FROM ubuntu:xenial
 
 # Add proxies based on Zeta Config
 $DOCKER_LINE
